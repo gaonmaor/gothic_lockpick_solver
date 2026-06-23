@@ -6,7 +6,7 @@
 
 A browser-based lockpicking mini-game and solver inspired by the **Gothic 1 Remake**. No installation required — just open the HTML file in any modern browser.
 
-> **[Live Demo / Source](https://github.com/gaonmaor/gothic_lockpick_solver/tree/main)**
+> **[Live Demo / Source](https://gaonmaor.github.io/gothic_lockpick_solver/gothic_lockpick_solver.html)**
 
 ## Features
 
