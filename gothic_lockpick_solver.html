@@ -1,0 +1,2355 @@
+<!--
+    Gothic Lockpick — Plate Alignment Puzzle Engine & Solver
+    
+    A browser-based lockpicking mini-game inspired by the Gothic 1 Remake.
+    Includes a BFS-based puzzle solver, a visual puzzle builder, and multiple
+    game modes for practice and analysis.
+
+    Author:  Maor Gaon
+    License: MIT
+    Source:  https://github.com/gaonmaor/gothic_lockpick_solver/tree/main
+
+    Copyright (c) 2026 Maor Gaon
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+    FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OTHER
+    DEALINGS IN THE SOFTWARE.
+
+    DISCLAIMER: This project is a fan-made tool and is not affiliated with,
+    endorsed by, or connected to Piranha Bytes, THQ Nordic, or any official
+    Gothic franchise entity. "Gothic" is a trademark of its respective owners.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gothic Lockpick - Plate Alignment Puzzle</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700&display=swap');
+
+        :root {
+            --bg: #0a0a0a;
+            --panel: #1a1611;
+            --panel-border: #3a2f20;
+            --text: #d4c8a0;
+            --text-dim: #8a7e60;
+            --accent: #c8a84e;
+            --accent-glow: #e8c84e;
+            --success: #5a9e4a;
+            --fail: #a83232;
+            --metal: #6e6e6e;
+            --metal-light: #9a9a9a;
+            --metal-dark: #3a3a3a;
+            --brass: #b8860b;
+            --brass-light: #d4a017;
+            --plate-bg: #3a3a40;
+            --plate-light: #4a4a52;
+            --plate-border: #2a2a30;
+            --channel-bg: #111114;
+            --channel-border: #222228;
+            --pin-brass: #B5A642;
+            --pin-glow: #d4b830;
+            --selected-glow: rgba(180,200,255,0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 50% 30%, rgba(30,25,15,0.6) 0%, transparent 70%);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 780px;
+            width: 100%;
+            background: var(--panel);
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.03);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(180deg, #2a2015 0%, #1a1611 100%);
+            border-bottom: 2px solid var(--panel-border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+        .header .subtitle {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .section {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(58,47,32,0.5);
+        }
+        .section:last-child { border-bottom: none; }
+        .section-title {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.75rem;
+        }
+
+        .setup-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+        .setup-row:last-child { margin-bottom: 0; }
+
+        label.field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        label.checkbox-field {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+        }
+        label.checkbox-field input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            accent-color: var(--accent);
+        }
+
+        select, input[type="number"], input[type="text"] {
+            padding: 0.4rem 0.6rem;
+            border-radius: 3px;
+            border: 1px solid var(--metal-dark);
+            background: #111;
+            color: var(--text);
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 6px rgba(200,168,78,0.2);
+        }
+        input[type="number"] { width: 60px; }
+        input[type="text"] { width: 260px; font-family: monospace; font-size: 0.75rem; }
+
+        .btn {
+            padding: 0.45rem 1rem;
+            border-radius: 3px;
+            border: 1px solid var(--accent);
+            background: linear-gradient(180deg, rgba(200,168,78,0.2) 0%, rgba(200,168,78,0.05) 100%);
+            color: var(--accent);
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: linear-gradient(180deg, rgba(200,168,78,0.35) 0%, rgba(200,168,78,0.1) 100%);
+            box-shadow: 0 0 10px rgba(200,168,78,0.15);
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn.primary {
+            background: linear-gradient(180deg, rgba(200,168,78,0.4) 0%, rgba(200,168,78,0.15) 100%);
+            font-weight: 700;
+        }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        .lock-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .lock-body {
+            position: relative;
+            background: linear-gradient(180deg, #1e1e1e 0%, #161616 100%);
+            border: 2px solid var(--metal-dark);
+            border-radius: 8px;
+            padding: 1.25rem 2.5rem;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.7), 0 4px 24px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 620px;
+        }
+
+        .tumbler-line {
+            position: absolute;
+            top: 0.75rem;
+            bottom: 0.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            background: linear-gradient(180deg, #d4a017, var(--pin-brass), #8a6e10);
+            box-shadow: 0 0 6px rgba(181,166,66,0.3), 0 0 12px rgba(181,166,66,0.15);
+            z-index: 2;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+        .tumbler-line::before {
+            content: '\u25BC';
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.5rem;
+            color: var(--brass-light);
+            opacity: 0.7;
+        }
+
+        .plate-row {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.15s;
+            z-index: 3;
+        }
+        .plate-row:hover { filter: brightness(1.05); }
+        .plate-row.selected { z-index: 5; }
+
+        .plate-label {
+            width: 22px;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-align: center;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+        .plate-row.selected .plate-label { color: #aac8ee; font-weight: 700; }
+
+        .plate-cassette {
+            flex: 1;
+            position: relative;
+            height: 36px;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .plate-body {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            position: relative;
+            background: linear-gradient(180deg, #555 0%, var(--plate-bg) 40%, #2e2e32 100%);
+            border: 1.5px solid var(--plate-border);
+            border-radius: 4px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3);
+        }
+        .plate-row.selected .plate-body {
+            background: linear-gradient(180deg, #5a6a7a 0%, #3a4a5a 40%, #2a3a4a 100%);
+            border-color: #5a7a9a;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 0 10px var(--selected-glow);
+        }
+
+        .plate-grip-left, .plate-grip-right {
+            width: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 4px;
+            flex-shrink: 0;
+        }
+        .plate-grip-left { padding-left: 6px; }
+        .plate-grip-right { padding-right: 6px; }
+        .grip-line {
+            height: 1.5px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 1px;
+        }
+
+        .plate-channel {
+            flex: 1;
+            height: 18px;
+            background: var(--channel-bg);
+            border: 1px solid var(--channel-border);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .channel-slots {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .channel-slot {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-right: 1px solid rgba(255,255,255,0.04);
+        }
+        .channel-slot:last-child { border-right: none; }
+
+        .channel-slot.is-gap {
+            background: rgba(50,45,30,0.3);
+            border-left: 1px solid rgba(181,166,66,0.15);
+            border-right: 1px solid rgba(181,166,66,0.15);
+        }
+        .channel-slot.is-gap::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            border-top: 1.5px solid rgba(181,166,66,0.2);
+            border-bottom: 1.5px solid rgba(181,166,66,0.2);
+            pointer-events: none;
+        }
+
+        .pin-peg {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #ffe070, var(--pin-brass), #8a6e10);
+            box-shadow: 0 0 3px rgba(181,166,66,0.4);
+            z-index: 4;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .channel-slot.aligned .pin-peg {
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 40% 35%, #ffe880, #d4b830, #b08a10);
+            box-shadow:
+                0 0 6px rgba(212,184,48,0.6),
+                0 0 14px rgba(212,184,48,0.25);
+        }
+
+        .conn-badge {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.5rem;
+            color: var(--text-dim);
+            background: rgba(0,0,0,0.5);
+            padding: 1px 4px;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+            z-index: 5;
+        }
+
+        .hint-badge {
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.5rem;
+            color: #6eaadc;
+            background: rgba(0,0,0,0.5);
+            padding: 1px 4px;
+            border-radius: 2px;
+            z-index: 5;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(2px); }
+        }
+        @keyframes flashRed {
+            0%, 100% { border-color: var(--plate-border); }
+            50% { border-color: var(--fail); }
+        }
+        .plate-row.mistake { animation: shake 0.35s ease; }
+        .plate-row.mistake .plate-body {
+            animation: flashRed 0.35s ease;
+            box-shadow: 0 0 12px rgba(168,50,50,0.3);
+        }
+
+        .lockpick-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 0.6rem 0;
+        }
+        .lockpick-tool {
+            position: relative;
+            width: 100px;
+            height: 28px;
+        }
+        .pick-handle {
+            position: absolute;
+            right: 0;
+            top: 6px;
+            width: 40px;
+            height: 16px;
+            background: linear-gradient(180deg, #5a4a30, #3a2a18);
+            border: 1px solid #2a1a08;
+            border-radius: 3px 6px 6px 3px;
+        }
+        .pick-shaft {
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 62px;
+            height: 5px;
+            background: linear-gradient(180deg, #888, #666, #555);
+            border-radius: 2px 0 0 2px;
+            clip-path: polygon(0% 0%, 8% 100%, 20% 30%, 35% 100%, 50% 20%, 65% 80%, 80% 0%, 100% 40%, 100% 100%, 0% 100%);
+        }
+        .pick-shaft.broken { opacity: 0.3; }
+        .pick-counter {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pick-count-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 24px;
+            padding: 0 6px;
+            background: #111;
+            border: 1px solid var(--metal-dark);
+            border-radius: 3px;
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .pick-count-box.danger { color: var(--fail); border-color: var(--fail); }
+        .pick-label {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
+            font-size: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .status-item { display: flex; align-items: center; gap: 0.3rem; }
+        .status-label { color: var(--text-dim); }
+        .status-value { color: var(--accent); font-weight: 700; }
+        .status-value.danger { color: var(--fail); }
+
+        .mode-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+        }
+        .mode-badge.game { background: rgba(200,168,78,0.15); color: var(--accent); border: 1px solid rgba(200,168,78,0.3); }
+        .mode-badge.free { background: rgba(90,158,74,0.15); color: var(--success); border: 1px solid rgba(90,158,74,0.3); }
+        .mode-badge.hint { background: rgba(78,140,200,0.15); color: #6eaadc; border: 1px solid rgba(78,140,200,0.3); }
+        .mode-badge.solve { background: rgba(168,100,50,0.15); color: #d09060; border: 1px solid rgba(168,100,50,0.3); }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ctrl-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid var(--metal);
+            background: linear-gradient(180deg, #333 0%, #1a1a1a 100%);
+            color: var(--text);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ctrl-btn:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(200,168,78,0.2); }
+        .ctrl-btn:active { transform: scale(0.93); }
+        .ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+        .ctrl-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .ctrl-group-label {
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ctrl-separator {
+            width: 1px;
+            height: 40px;
+            background: var(--metal-dark);
+            margin: 0 0.5rem;
+        }
+
+        .solution-controls {
+            display: none;
+            justify-content: center;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .solution-controls.visible { display: flex; }
+
+        .control-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem 1.5rem;
+            margin-top: 0.7rem;
+            font-size: 0.6rem;
+            color: var(--text-dim);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .key-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 20px;
+            padding: 0 4px;
+            border: 1px solid var(--metal);
+            border-bottom-width: 2px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, #2a2a2a, #1a1a1a);
+            font-family: 'Courier New', monospace;
+            font-size: 0.55rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .console {
+            background: #0e0e0e;
+            padding: 0.75rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            min-height: 70px;
+            max-height: 130px;
+            overflow-y: auto;
+            border: 1px solid #222;
+        }
+        .console::-webkit-scrollbar { width: 4px; }
+        .console::-webkit-scrollbar-thumb { background: var(--metal-dark); border-radius: 2px; }
+        .log-entry { margin: 0 0 0.2rem 0; color: var(--text-dim); line-height: 1.4; }
+        .log-entry.success { color: var(--success); }
+        .log-entry.fail { color: var(--fail); }
+        .log-entry.info { color: #6eaadc; }
+        .log-entry.accent { color: var(--accent); }
+
+        .result-banner {
+            text-align: center;
+            padding: 0.75rem;
+            font-family: 'MedievalSharp', cursive;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            display: none;
+        }
+        .result-banner.win { display: block; color: var(--success); text-shadow: 0 0 20px rgba(90,158,74,0.5); }
+        .result-banner.lose { display: block; color: var(--fail); text-shadow: 0 0 20px rgba(168,50,50,0.5); }
+
+        .conn-display {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+        }
+        .conn-display .conn-edge {
+            display: inline-block;
+            margin: 0.15rem 0.3rem;
+            padding: 0.1rem 0.4rem;
+            background: rgba(200,168,78,0.1);
+            border: 1px solid rgba(200,168,78,0.2);
+            border-radius: 2px;
+            color: var(--accent);
+        }
+
+        .manual-area { display: none; margin-top: 0.5rem; }
+        .manual-area.visible { display: block; }
+        .manual-help { font-size: 0.6rem; color: var(--text-dim); margin-top: 0.2rem; }
+
+        /* Visual Set Mode */
+        .visual-set-area { display: none; margin-top: 0.75rem; }
+        .visual-set-area.visible { display: block; }
+        .vs-header { margin-bottom: 0.5rem; }
+        .vs-phase-indicator {
+            display: flex; align-items: center; gap: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+        .vs-phase {
+            font-size: 0.7rem; padding: 0.2rem 0.5rem;
+            border-radius: 3px; background: var(--metal-dark);
+            color: var(--text-dim); letter-spacing: 0.5px;
+        }
+        .vs-phase.active { background: var(--accent); color: #000; font-weight: 700; }
+        .vs-phase.done { background: var(--success); color: #fff; }
+        .vs-phase-arrow { color: var(--text-dim); font-size: 0.7rem; }
+        .vs-status {
+            font-size: 0.75rem; color: var(--accent-glow);
+            padding: 0.3rem 0; font-weight: 700;
+        }
+        .vs-lock-display {
+            background: var(--channel-bg); border: 1px solid var(--channel-border);
+            border-radius: 4px; padding: 0.6rem; min-height: 60px;
+        }
+        .vs-bar-row {
+            display: flex; align-items: center; gap: 0.4rem;
+            padding: 0.25rem 0.3rem; border-radius: 3px; margin-bottom: 2px;
+        }
+        .vs-bar-row.active { background: rgba(200,168,78,0.12); outline: 1px solid var(--accent); }
+        .vs-bar-row.vs-source { background: rgba(90,158,74,0.15); outline: 2px solid var(--success); }
+        .vs-bar-row.vs-source .vs-bar-label { color: var(--success); font-weight: 700; }
+        .vs-bar-row.done-row { opacity: 0.6; }
+        .vs-bar-label {
+            width: 1.8rem; font-size: 0.65rem; color: var(--text-dim);
+            text-align: center; flex-shrink: 0;
+        }
+        .vs-dir-arrow {
+            font-size: 0.75rem; flex-shrink: 0; width: 1.4rem; text-align: center;
+        }
+        .vs-dir-arrow.same { color: var(--success); }
+        .vs-dir-arrow.inv { color: var(--fail); }
+        .vs-dir-arrow.source { color: var(--accent-glow); }
+        .vs-bar-channel {
+            display: flex; gap: 2px; flex: 1;
+        }
+        .vs-bar-slot {
+            width: 20px; height: 18px; border-radius: 2px;
+            background: var(--plate-bg); border: 1px solid var(--plate-border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.55rem; position: relative;
+        }
+        .vs-bar-slot.center-slot { border-color: var(--brass); }
+        .vs-bar-slot.has-pin { background: var(--pin-brass); border-color: var(--pin-glow); }
+        .vs-bar-slot.has-pin::after {
+            content: ''; width: 6px; height: 6px;
+            background: var(--brass-light); border-radius: 50%;
+        }
+        .vs-bar-conn {
+            font-size: 0.6rem; color: var(--text-dim); margin-left: 0.3rem;
+            white-space: nowrap; flex-shrink: 0; min-width: 4rem;
+        }
+        .vs-bar-conn .conn-same { color: var(--success); }
+        .vs-bar-conn .conn-inv { color: var(--fail); }
+        .vs-dep-cursor {
+            outline: 2px solid var(--accent-glow);
+            background: rgba(200,168,78,0.2) !important;
+        }
+        .vs-cheatsheet {
+            margin-top: 0.5rem; padding: 0.5rem 0.6rem;
+            background: rgba(30,25,15,0.6); border: 1px solid var(--panel-border);
+            border-radius: 3px;
+        }
+        .vs-cheat-title {
+            font-size: 0.6rem; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 0.3rem;
+        }
+        .vs-cheat-content { font-size: 0.7rem; color: var(--text); line-height: 1.5; }
+        .vs-cheat-content .key { 
+            display: inline-block; padding: 0.05rem 0.35rem;
+            background: var(--metal-dark); border: 1px solid var(--metal);
+            border-radius: 3px; font-size: 0.6rem; margin: 0 0.1rem;
+            font-family: monospace; color: var(--accent);
+        }
+        .vs-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
+
+        @media (max-width: 550px) {
+            body { padding: 0.5rem; }
+            .section { padding: 0.75rem 1rem; }
+            .header h1 { font-size: 0.9rem; }
+            .lock-body { padding: 1rem 1.5rem; }
+            .ctrl-btn { width: 46px; height: 46px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>Open Chest</h1>
+            <div class="subtitle">Plate Alignment Puzzle</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Lock Setup</div>
+        <div class="setup-row">
+            <label class="field">
+                Difficulty
+                <select id="lockDifficulty" onchange="game.onDifficultyChange()">
+                    <option value="easy">Easy (4 plates, few links)</option>
+                    <option value="medium" selected>Medium (5 plates, many links)</option>
+                    <option value="hard">Hard (6 plates, heavy links)</option>
+                    <option value="veryhard">Very Hard (7 plates, max links)</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </label>
+            <label class="field">
+                Plates
+                <input type="number" id="plateCount" value="5" min="2" max="10">
+            </label>
+            <label class="field">
+                Channel Width
+                <input type="number" id="channelWidth" value="7" min="3" max="13" title="Number of positions per plate channel (target is always the center)">
+            </label>
+            <label class="field">
+                Source
+                <select id="lockSource" onchange="game.toggleManualInput()">
+                    <option value="generate">Generate</option>
+                    <option value="visual">Visual Set</option>
+                    <option value="manual">Manual (JSON)</option>
+                </select>
+            </label>
+        </div>
+        <div class="setup-row">
+            <label class="field">
+                Mode
+                <select id="gameMode" onchange="game.onModeChange()">
+                    <option value="game">1 - Game (Skill-based)</option>
+                    <option value="free">2 - Free Practice</option>
+                    <option value="hint">3 - Hint (Distance)</option>
+                    <option value="solve">4 - Solution Viewer</option>
+                </select>
+            </label>
+            <label class="field" id="skillField">
+                Skill Level
+                <select id="skillLevel">
+                    <option value="0">Level 0 - Unskilled (2 mistakes, full reset)</option>
+                    <option value="1" selected>Level 1 - Trained (4 mistakes, keep progress)</option>
+                    <option value="2">Level 2 - Master (6 mistakes, keep progress)</option>
+                </select>
+            </label>
+        </div>
+        <div class="setup-row">
+            <label class="field">
+                Picks Available
+                <input type="number" id="picksCount" value="5" min="1" max="20">
+            </label>
+            <label class="field checkbox-field" title="When OFF (Gothic-style): all pins must reach the center. When ON: each pin has its own unique target position.">
+                <input type="checkbox" id="variedTargets"> Varied Targets
+            </label>
+            <button class="btn primary" onclick="game.startNewGame()">New Lock</button>
+            <button class="btn" onclick="game.resetCurrent()">Reset</button>
+            <button class="btn" onclick="game.showPuzzleJSON()">Show JSON</button>
+        </div>
+        <div class="manual-area" id="manualArea">
+            <label class="field">
+                Puzzle JSON
+                <input type="text" id="manualJSON" placeholder='e.g. see console for format' style="width:100%;">
+            </label>
+            <div style="margin-top:0.4rem;">
+                <button class="btn" onclick="game.loadFromJSON()">Load JSON</button>
+            </div>
+            <div class="manual-help">Paste a puzzle JSON, then click Load JSON. Or select Manual source and click New Lock.</div>
+        </div>
+        <div class="visual-set-area" id="visualSetArea">
+            <div class="vs-header">
+                <div class="vs-phase-indicator">
+                    <span class="vs-phase" id="vsPhase1">① Positions</span>
+                    <span class="vs-phase-arrow">→</span>
+                    <span class="vs-phase" id="vsPhase2">② Dependencies</span>
+                    <span class="vs-phase-arrow">→</span>
+                    <span class="vs-phase" id="vsPhase3">③ Done</span>
+                </div>
+                <div class="vs-status" id="vsStatus">Click "New Lock" with Visual Set selected to begin.</div>
+            </div>
+            <div class="vs-lock-display" id="vsLockDisplay"></div>
+            <div class="vs-cheatsheet" id="vsCheatsheet">
+                <div class="vs-cheat-title">Controls</div>
+                <div class="vs-cheat-content" id="vsCheatContent">
+                    Select "Visual Set" as source and click New Lock to start the setup wizard.
+                </div>
+            </div>
+            <div class="vs-actions" id="vsActions" style="display:none;">
+                <button class="btn" onclick="game.vsCancel()">Cancel</button>
+                <button class="btn" onclick="game.vsSkipBar()">Skip Bar (no links)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="lock-area">
+            <div id="modeBadge" class="mode-badge game">Game Mode</div>
+            <div class="lock-body" id="lockBody">
+                <div class="tumbler-line" id="tumblerLine"></div>
+                <div id="plateContainer"></div>
+            </div>
+            <div class="lockpick-area" id="lockpickArea">
+                <div class="lockpick-tool">
+                    <div class="pick-shaft" id="pickShaft"></div>
+                    <div class="pick-handle"></div>
+                </div>
+                <div class="pick-counter">
+                    <div class="pick-count-box" id="pickCountBox">5</div>
+                    <span class="pick-label">Picks</span>
+                </div>
+            </div>
+            <div class="status-bar" id="statusBar"></div>
+            <div id="connDisplay" class="conn-display" style="display:none;"></div>
+        </div>
+        <div id="resultBanner" class="result-banner"></div>
+    </div>
+
+    <div class="section">
+        <div class="controls" id="playerControls">
+            <div class="ctrl-group">
+                <div class="ctrl-group-label">Select Plate</div>
+                <div style="display:flex; gap:0.5rem;">
+                    <button class="ctrl-btn" id="btnUp" onclick="game.selectPrev()" title="Previous plate (W)">&#9650;</button>
+                    <button class="ctrl-btn" id="btnDown" onclick="game.selectNext()" title="Next plate (S)">&#9660;</button>
+                </div>
+            </div>
+            <div class="ctrl-separator"></div>
+            <div class="ctrl-group">
+                <div class="ctrl-group-label">Move Plate</div>
+                <div style="display:flex; gap:0.5rem;">
+                    <button class="ctrl-btn" id="btnLeft" onclick="game.move(-1)" title="Move left (A)">&#9668;</button>
+                    <button class="ctrl-btn" id="btnRight" onclick="game.move(1)" title="Move right (D)">&#9658;</button>
+                </div>
+            </div>
+        </div>
+        <div class="solution-controls" id="solveControls">
+            <button class="btn" onclick="game.solveReset()">Reset</button>
+            <button class="btn" onclick="game.solveStep()">Step</button>
+            <button class="btn" onclick="game.solveAll()">Solve All</button>
+            <button class="btn" onclick="game.copyPuzzle()">Copy Puzzle</button>
+        </div>
+        <div class="control-legend">
+            <div class="legend-item"><span class="key-icon">A</span><span class="key-icon">D</span> Move left/right</div>
+            <div class="legend-item"><span class="key-icon">W</span><span class="key-icon">S</span> Move up/down</div>
+            <div class="legend-item"><span class="key-icon">ESC</span> Cancel</div>
+            <div class="legend-item"><span class="key-icon">R</span> Reset</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Log</div>
+        <div class="console" id="consoleLog"></div>
+    </div>
+</div>
+
+<script>
+/**
+ * Gothic 1 Remake Lockpicking Engine
+ *
+ * Core mechanic (from spec):
+ * - A stationary brass TUMBLER (pin) spans the depth of the lock. It never moves.
+ * - Multiple PLATES slide horizontally in channels.
+ * - Each plate has a GAP (cutout). Goal: align every plate's gap with the tumbler.
+ * - Plates have DIRECTED CONNECTIONS (one-way): moving plate A can drag plate B, but not vice versa.
+ * - Hitting a wall (boundary) = MISTAKE. Accumulated mistakes break the pick.
+ * - Skill level controls: mistake tolerance, reset behavior, graph complexity.
+ *
+ * Data model (per spec Section 2):
+ * - current_pos: the current horizontal offset of the plate
+ * - target_pos: the plate offset at which the gap aligns with the stationary tumbler
+ * - min_pos / max_pos: the channel walls (bounds on plate offset)
+ * - connections: directed graph (one-way links between plates)
+ *
+ * Counter-intuitive controls (per spec Section 4):
+ * - The tumbler is stationary. The player shifts the plate.
+ * - Pressing RIGHT shifts the plate right, making the tumbler APPEAR to move LEFT
+ *   within the channel. The visual pin position is rendered inverted.
+ */
+
+class GothicLockpick {
+    constructor() {
+        this.plates = [];
+        this.connections = {};
+        this.selectedPlate = 0;
+        this.mistakesCount = 0;
+        this.picksRemaining = 5;
+        this.picksTotal = 5;
+        this.skillLevel = 1;
+        this.mode = 'game';
+        this.isSolved = false;
+        this.isGameOver = false;
+        this.totalMoves = 0;
+        this.solution = [];
+        this.solveIdx = 0;
+        this.vsActive = false;
+
+        this.startNewGame();
+    }
+
+    /* === PUZZLE GENERATION === */
+
+    generatePuzzle(plateCount, channelWidth, difficulty) {
+        var plates = [];
+        if (channelWidth % 2 === 0) channelWidth++;
+
+        var center = Math.floor(channelWidth / 2);
+        var useVariedTargets = document.getElementById('variedTargets').checked;
+
+        for (var i = 0; i < plateCount; i++) {
+            var minPos = 0;
+            var maxPos = channelWidth - 1;
+
+            // Gothic-style: all targets at center.
+            // Varied targets mode: each plate has a random target position.
+            var targetPos;
+            if (useVariedTargets) {
+                // Randomize target across inner positions (avoid extreme edges)
+                // e.g., for width 7: positions 1-5
+                targetPos = 1 + Math.floor(Math.random() * (channelWidth - 2));
+            } else {
+                // Gothic-style: all targets at center
+                targetPos = center;
+            }
+
+            // Pick initial position different from target
+            var initialPos;
+            do {
+                initialPos = Math.floor(Math.random() * channelWidth);
+            } while (initialPos === targetPos);
+
+            plates.push({
+                initial_pos: initialPos,
+                current_pos: initialPos,
+                target_pos: targetPos,
+                min_pos: minPos,
+                max_pos: maxPos
+            });
+        }
+
+        var connections = this.generateConnections(plateCount);
+        return { plates: plates, connections: connections };
+    }
+
+    /* Difficulty presets control plate count and connection density.
+     * Connection density is the primary driver of difficulty:
+     * - Easy: ~20% of plateCount as connections (more freebie/independent plates)
+     * - Medium: ~50% (moderate chain reactions)
+     * - Hard: ~80% (complex chain reactions, moving one plate drags others)
+     * - Very Hard: ~100%+ (maximum links, massive convoluted sequences)
+     */
+    getDifficultyPreset(difficulty) {
+        var presets = {
+            easy:     { plates: 4, channelWidth: 7, connDensity: 0.4, minSteps: 3,  variedTargets: false },
+            medium:   { plates: 5, channelWidth: 7, connDensity: 0.8, minSteps: 8,  variedTargets: false },
+            hard:     { plates: 6, channelWidth: 7, connDensity: 1.5, minSteps: 18, variedTargets: false },
+            veryhard: { plates: 7, channelWidth: 7, connDensity: 2.0, minSteps: 30, variedTargets: false }
+        };
+        return presets[difficulty] || presets.medium;
+    }
+
+    onDifficultyChange() {
+        var diff = document.getElementById('lockDifficulty').value;
+        if (diff === 'custom') return;
+        var preset = this.getDifficultyPreset(diff);
+        document.getElementById('plateCount').value = preset.plates;
+        document.getElementById('channelWidth').value = preset.channelWidth;
+        document.getElementById('variedTargets').checked = preset.variedTargets;
+    }
+
+    generateConnections(plateCount) {
+        var connections = {};
+
+        // Determine connection density from difficulty setting
+        var diff = document.getElementById('lockDifficulty').value;
+        var density;
+        if (diff === 'custom') {
+            density = 0.6;
+        } else {
+            density = this.getDifficultyPreset(diff).connDensity;
+        }
+        var maxConnections = Math.max(0, Math.round(plateCount * density));
+
+        var allEdges = [];
+        for (var i = 0; i < plateCount; i++) {
+            for (var j = 0; j < plateCount; j++) {
+                if (i !== j) allEdges.push([i, j]);
+            }
+        }
+
+        this.shuffleArray(allEdges);
+        var edgeCount = Math.min(maxConnections, allEdges.length);
+
+        for (var e = 0; e < edgeCount; e++) {
+            var src = allEdges[e][0];
+            var dst = allEdges[e][1];
+            // Each connection has a direction: 1 = same direction, -1 = inverse
+            var edgeDir = Math.random() < 0.5 ? 1 : -1;
+            if (!connections[src]) connections[src] = [];
+            // Avoid duplicate targets
+            var exists = false;
+            for (var c = 0; c < connections[src].length; c++) {
+                if (connections[src][c].target === dst) { exists = true; break; }
+            }
+            if (!exists) {
+                connections[src].push({ target: dst, dir: edgeDir });
+            }
+        }
+
+        // Skill level removes connections to simplify puzzle:
+        // Level 0: keep all connections (maximum complexity)
+        // Level 1: remove 1 connection
+        // Level 2: remove 2 connections (additional reduction)
+        var removals = this.skillLevel;
+        var removed = 0;
+        var sources = Object.keys(connections).map(Number);
+        this.shuffleArray(sources);
+
+        for (var s = 0; s < sources.length; s++) {
+            if (removed >= removals) break;
+            var key = sources[s];
+            if (connections[key] && connections[key].length > 0) {
+                connections[key].pop();
+                if (connections[key].length === 0) delete connections[key];
+                removed++;
+            }
+        }
+
+        return connections;
+    }
+
+    isSolvable(plates, connections, maxIterations) {
+        if (!maxIterations) maxIterations = 50000;
+        var n = plates.length;
+        var targetState = plates.map(function(p) { return p.target_pos; }).join(',');
+        var startState = plates.map(function(p) { return p.initial_pos; }).join(',');
+
+        return this._bfsSolve(startState, targetState, plates, connections, maxIterations);
+    }
+
+    /**
+     * Solve from the current plate positions. Used to show
+     * optimal remaining steps in the status bar.
+     */
+    solveFromCurrent(maxIterations) {
+        if (!maxIterations) maxIterations = 50000;
+        var targetState = this.plates.map(function(p) { return p.target_pos; }).join(',');
+        var startState = this.plates.map(function(p) { return p.current_pos; }).join(',');
+
+        return this._bfsSolve(startState, targetState, this.plates, this.connections, maxIterations);
+    }
+
+    _bfsSolve(startState, targetState, plates, connections, maxIterations) {
+        var n = plates.length;
+
+        if (startState === targetState) return { solvable: true, steps: [] };
+
+        var visited = {};
+        visited[startState] = true;
+        var queue = [{ state: startState, steps: [] }];
+
+        var iterations = 0;
+        while (queue.length > 0 && iterations < maxIterations) {
+            iterations++;
+            var current = queue.shift();
+            var positions = current.state.split(',').map(Number);
+
+            for (var plateIdx = 0; plateIdx < n; plateIdx++) {
+                var dirs = [-1, 1];
+                for (var d = 0; d < dirs.length; d++) {
+                    var dir = dirs[d];
+                    var movers = this.getMovers(plateIdx, connections);
+                    var blocked = false;
+                    for (var m = 0; m < movers.length; m++) {
+                        var mover = movers[m];
+                        var newPos = positions[mover.plate] + dir * mover.dirMul;
+                        if (newPos < plates[mover.plate].min_pos || newPos > plates[mover.plate].max_pos) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                    if (blocked) continue;
+
+                    var newPositions = positions.slice();
+                    for (var m2 = 0; m2 < movers.length; m2++) {
+                        var mover2 = movers[m2];
+                        newPositions[mover2.plate] += dir * mover2.dirMul;
+                    }
+                    var newState = newPositions.join(',');
+
+                    if (newState === targetState) {
+                        var steps = current.steps.slice();
+                        steps.push({ plate: plateIdx, dir: dir });
+                        return { solvable: true, steps: steps };
+                    }
+
+                    if (!visited[newState]) {
+                        visited[newState] = true;
+                        var newSteps = current.steps.slice();
+                        newSteps.push({ plate: plateIdx, dir: dir });
+                        queue.push({ state: newState, steps: newSteps });
+                    }
+                }
+            }
+        }
+
+        return { solvable: false, steps: [] };
+    }
+
+    /**
+     * Get all plates affected when a given plate moves, with their
+     * direction multipliers. Each connection can be same-dir (1) or
+     * inverse (-1). Multipliers compound through chains.
+     *
+     * Returns: [{plate: idx, dirMul: 1 or -1}, ...]
+     * The first entry is always the source plate with dirMul=1.
+     */
+    getMovers(plateIdx, connections) {
+        var visited = {};
+        var result = [];
+        // BFS/DFS with direction tracking
+        var stack = [{ plate: plateIdx, dirMul: 1 }];
+        while (stack.length > 0) {
+            var item = stack.pop();
+            if (visited[item.plate] !== undefined) continue;
+            visited[item.plate] = item.dirMul;
+            result.push(item);
+            if (connections[item.plate]) {
+                for (var i = 0; i < connections[item.plate].length; i++) {
+                    var edge = connections[item.plate][i];
+                    if (visited[edge.target] === undefined) {
+                        // Compound the direction: if this plate is inverse
+                        // and the edge is inverse, downstream is same (mul * mul)
+                        stack.push({ plate: edge.target, dirMul: item.dirMul * edge.dir });
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    shuffleArray(arr) {
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        }
+    }
+
+    /* === GAME LIFECYCLE === */
+
+    startNewGame() {
+        this.mode = document.getElementById('gameMode').value;
+        this.skillLevel = parseInt(document.getElementById('skillLevel').value);
+        this.picksTotal = parseInt(document.getElementById('picksCount').value) || 5;
+        this.picksRemaining = this.picksTotal;
+        this.mistakesCount = 0;
+        this.selectedPlate = 0;
+        this.isSolved = false;
+        this.isGameOver = false;
+        this.totalMoves = 0;
+        this.solution = [];
+        this.solveIdx = 0;
+
+        var source = document.getElementById('lockSource').value;
+
+        if (source === 'visual') {
+            this.vsStart();
+            return;
+        } else if (source === 'manual') {
+            if (!this.loadManualPuzzle()) return;
+        } else {
+            var plateCount = Math.max(2, Math.min(10, parseInt(document.getElementById('plateCount').value) || 6));
+            var channelWidth = Math.max(3, Math.min(13, parseInt(document.getElementById('channelWidth').value) || 7));
+            if (channelWidth % 2 === 0) channelWidth++;
+
+            var diff = document.getElementById('lockDifficulty').value;
+            var preset = this.getDifficultyPreset(diff);
+            var minSteps = preset.minSteps || 0;
+
+            var attempt = 0;
+            var puzzle;
+            var result;
+            var bestPuzzle = null;
+            var bestResult = null;
+            do {
+                puzzle = this.generatePuzzle(plateCount, channelWidth, diff);
+                result = this.isSolvable(puzzle.plates, puzzle.connections);
+                attempt++;
+                if (result.solvable) {
+                    if (!bestResult || result.steps.length > bestResult.steps.length) {
+                        bestPuzzle = puzzle;
+                        bestResult = result;
+                    }
+                }
+            } while ((!bestResult || bestResult.steps.length < minSteps) && attempt < 50);
+
+            if (!bestResult) {
+                this.clearLog();
+                this.log('Failed to generate solvable puzzle after ' + attempt + ' attempts. Try fewer plates or wider channels.', 'fail');
+                return;
+            }
+            if (bestResult.steps.length < minSteps) {
+                this.clearLog();
+                this.log('Best puzzle found: ' + bestResult.steps.length + ' steps (target: ' + minSteps + '+). Generated after ' + attempt + ' attempts.', 'accent');
+            }
+
+            this.plates = bestPuzzle.plates;
+            this.connections = bestPuzzle.connections;
+            this.solution = bestResult.steps;
+        }
+
+        this.clearLog();
+        var diff = document.getElementById('lockDifficulty').value;
+        var diffLabels = { easy: 'Easy', medium: 'Medium', hard: 'Hard', veryhard: 'Very Hard', custom: 'Custom' };
+        var self = this;
+        var edgeCount = Object.keys(this.connections).reduce(function(sum, k) { return sum + self.connections[k].length; }, 0);
+        this.log('Lock set: ' + this.plates.length + ' plates. Difficulty: ' + (diffLabels[diff] || diff) + '. Skill level ' + this.skillLevel + '.', 'info');
+        this.log('Connections: ' + this.formatConnections() + ' (' + edgeCount + ' edges)', 'info');
+        if (this.mode === 'game') {
+            var tol = this.getMistakeTolerance();
+            this.log('Picks: ' + this.picksRemaining + '. Tolerance: ' + tol + ' mistakes before break.', 'accent');
+            if (this.skillLevel === 0) this.log('WARNING: Pick break causes FULL RESET of all plates.', 'fail');
+            else this.log('Pick break preserves current plate positions.', 'info');
+        }
+        if (this.solution.length > 0) {
+            this.log('Puzzle solvable in ' + this.solution.length + ' moves.', 'info');
+        }
+        // Log per-plate targets for varied-target puzzles
+        var targets = this.plates.map(function(p) { return p.target_pos; });
+        var starts = this.plates.map(function(p) { return p.initial_pos; });
+        this.log('Targets: [' + targets.join(',') + ']  Start: [' + starts.join(',') + ']', 'info');
+
+        this.onModeChange();
+        this.render();
+    }
+
+    loadManualPuzzle() {
+        try {
+            var raw = document.getElementById('manualJSON').value.trim();
+            var data = JSON.parse(raw);
+            if (!data.plates || !Array.isArray(data.plates) || data.plates.length < 2) {
+                throw new Error('Need at least 2 plates');
+            }
+            this.plates = data.plates.map(function(p) {
+                return {
+                    initial_pos: p.initial_pos,
+                    current_pos: p.initial_pos,
+                    target_pos: p.target_pos,
+                    min_pos: p.min_pos,
+                    max_pos: p.max_pos
+                };
+            });
+            this.connections = {};
+            var rawConns = data.connections || {};
+            var connKeys = Object.keys(rawConns);
+            for (var ck = 0; ck < connKeys.length; ck++) {
+                var src = connKeys[ck];
+                var edges = rawConns[src];
+                this.connections[src] = [];
+                for (var ei = 0; ei < edges.length; ei++) {
+                    var edge = edges[ei];
+                    if (typeof edge === 'number') {
+                        // Legacy format: plain target index, default to same-direction
+                        this.connections[src].push({ target: edge, dir: 1 });
+                    } else {
+                        this.connections[src].push({ target: edge.target, dir: edge.dir || 1 });
+                    }
+                }
+            }
+            var result = this.isSolvable(this.plates, this.connections);
+            if (!result.solvable) {
+                this.log('WARNING: Manual puzzle may not be solvable.', 'fail');
+                this.solution = [];
+            } else {
+                this.solution = result.steps;
+            }
+            return true;
+        } catch (e) {
+            this.clearLog();
+            this.log('Invalid puzzle JSON: ' + e.message, 'fail');
+            this.log('Format: {"plates":[{"initial_pos":0,"target_pos":3,"min_pos":0,"max_pos":6},...], "connections":{"0":[{"target":2,"dir":1}]}}', 'info');
+            this.log('dir: 1 = same direction, -1 = inverse direction', 'info');
+            return false;
+        }
+    }
+
+    /**
+     * Load a puzzle directly from the JSON input field.
+     * Sets source to Manual and starts a new game with the pasted data.
+     */
+    loadFromJSON() {
+        document.getElementById('lockSource').value = 'manual';
+        this.toggleManualInput();
+        this.mode = document.getElementById('gameMode').value;
+        this.skillLevel = parseInt(document.getElementById('skillLevel').value);
+        this.picksTotal = parseInt(document.getElementById('picksCount').value) || 5;
+        this.picksRemaining = this.picksTotal;
+        this.mistakesCount = 0;
+        this.selectedPlate = 0;
+        this.isSolved = false;
+        this.isGameOver = false;
+        this.totalMoves = 0;
+        this.solution = [];
+        this.solveIdx = 0;
+
+        if (!this.loadManualPuzzle()) return;
+
+        this.clearLog();
+        this.log('Loaded puzzle from JSON: ' + this.plates.length + ' plates.', 'info');
+        this.log('Connections: ' + this.formatConnections(), 'info');
+        if (this.solution.length > 0) {
+            this.log('Puzzle solvable in ' + this.solution.length + ' moves.', 'info');
+        }
+        // Log each plate's target for clarity
+        for (var i = 0; i < this.plates.length; i++) {
+            var p = this.plates[i];
+            this.log('  Plate ' + (i+1) + ': start=' + p.initial_pos + ' target=' + p.target_pos, 'info');
+        }
+
+        this.onModeChange();
+        this.render();
+    }
+
+    /* === VISUAL SET MODE === */
+
+    vsStart() {
+        var plateCount = Math.max(2, Math.min(10, parseInt(document.getElementById('plateCount').value) || 5));
+        var channelWidth = Math.max(3, Math.min(13, parseInt(document.getElementById('channelWidth').value) || 7));
+        if (channelWidth % 2 === 0) channelWidth++;
+        var center = Math.floor(channelWidth / 2);
+
+        this.vsActive = true;
+        this.vsPhase = 'positions'; // 'positions' or 'dependencies'
+        this.vsPlateCount = plateCount;
+        this.vsChannelWidth = channelWidth;
+        this.vsCenter = center;
+        this.vsCurrentBar = 0;
+        this.vsPositions = [];
+        this.vsConnections = {};
+        this.vsDepCursor = 0; // which OTHER bar the dep cursor is on
+
+        // Initialize all pins at random positions (not center)
+        for (var i = 0; i < plateCount; i++) {
+            var pos;
+            do { pos = Math.floor(Math.random() * channelWidth); } while (pos === center);
+            this.vsPositions.push(pos);
+        }
+
+        this.clearLog();
+        this.log('Visual Set: Configure ' + plateCount + ' bars. Phase 1 \u2014 set starting pin positions.', 'accent');
+        document.getElementById('vsActions').style.display = 'flex';
+        this.vsRender();
+    }
+
+    vsRender() {
+        // Phase indicators
+        var p1 = document.getElementById('vsPhase1');
+        var p2 = document.getElementById('vsPhase2');
+        var p3 = document.getElementById('vsPhase3');
+        p1.className = 'vs-phase' + (this.vsPhase === 'positions' ? ' active' : (this.vsPhase === 'dependencies' || this.vsPhase === 'done') ? ' done' : '');
+        p2.className = 'vs-phase' + (this.vsPhase === 'dependencies' ? ' active' : this.vsPhase === 'done' ? ' done' : '');
+        p3.className = 'vs-phase' + (this.vsPhase === 'done' ? ' active' : '');
+
+        // Status
+        var status = document.getElementById('vsStatus');
+        if (this.vsPhase === 'positions') {
+            status.textContent = 'Bar ' + (this.vsCurrentBar + 1) + '/' + this.vsPlateCount + ' \u2014 Position the pin with \u2190 \u2192, press Enter to confirm.';
+        } else if (this.vsPhase === 'dependencies') {
+            status.textContent = 'Bar ' + (this.vsCurrentBar + 1) + '/' + this.vsPlateCount + ' \u2014 Navigate bars with \u2191 \u2193. \u2192 = same-dir link, \u2190 = inverse link. Enter = next bar.';
+        } else {
+            status.textContent = 'Setup complete! Press Enter or click "New Lock" to play.';
+        }
+
+        // Cheat sheet
+        var cheat = document.getElementById('vsCheatContent');
+        if (this.vsPhase === 'positions') {
+            cheat.innerHTML = '<span class="key">\u2190</span> <span class="key">\u2192</span> Move pin left/right<br>' +
+                '<span class="key">Enter</span> Confirm pin position &amp; advance to next bar<br>' +
+                '<span class="key">Esc</span> Cancel setup';
+        } else if (this.vsPhase === 'dependencies') {
+            cheat.innerHTML = '<span class="key">\u2191</span> <span class="key">\u2193</span> Navigate between bars<br>' +
+                '<span class="key">\u2192</span> Add/toggle SAME direction link (moves together)<br>' +
+                '<span class="key">\u2190</span> Add/toggle INVERSE direction link (moves opposite)<br>' +
+                '<span class="key">Enter</span> Confirm links &amp; advance to next bar<br>' +
+                '<span class="key">Skip</span> No links for this bar<br>' +
+                '<span class="key">Esc</span> Cancel setup';
+        } else {
+            cheat.innerHTML = 'Lock configured! <span class="key">Enter</span> to start playing.';
+        }
+
+        // Lock display
+        var display = document.getElementById('vsLockDisplay');
+        display.innerHTML = '';
+
+        for (var i = 0; i < this.vsPlateCount; i++) {
+            var row = document.createElement('div');
+            row.className = 'vs-bar-row';
+            var isActive = (i === this.vsCurrentBar);
+
+            if (this.vsPhase === 'positions') {
+                if (i < this.vsCurrentBar) row.classList.add('done-row');
+                if (isActive) row.classList.add('active');
+            } else if (this.vsPhase === 'dependencies') {
+                if (i < this.vsCurrentBar) row.classList.add('done-row');
+                if (isActive) row.classList.add('vs-source');
+            }
+
+            // Direction arrow (dep phase): shows relationship to source bar
+            var arrowDiv = document.createElement('div');
+            arrowDiv.className = 'vs-dir-arrow';
+            if (this.vsPhase === 'dependencies') {
+                if (isActive) {
+                    // Source bar: show a right arrow indicating "this bar moves →"
+                    arrowDiv.classList.add('source');
+                    arrowDiv.textContent = '\u25B6';
+                } else {
+                    // Check if this bar has a connection FROM the current source
+                    var srcConns = this.vsConnections[this.vsCurrentBar];
+                    if (srcConns) {
+                        for (var ci = 0; ci < srcConns.length; ci++) {
+                            if (srcConns[ci].target === i) {
+                                if (srcConns[ci].dir === 1) {
+                                    arrowDiv.classList.add('same');
+                                    arrowDiv.textContent = '\u25B6'; // same direction
+                                } else {
+                                    arrowDiv.classList.add('inv');
+                                    arrowDiv.textContent = '\u25C0'; // opposite direction
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Label
+            var label = document.createElement('div');
+            label.className = 'vs-bar-label';
+            label.textContent = (i + 1);
+            row.appendChild(arrowDiv);
+            row.appendChild(label);
+
+            // Channel slots
+            var channel = document.createElement('div');
+            channel.className = 'vs-bar-channel';
+            for (var pos = 0; pos < this.vsChannelWidth; pos++) {
+                var slot = document.createElement('div');
+                slot.className = 'vs-bar-slot';
+                if (pos === this.vsCenter) slot.classList.add('center-slot');
+                if (pos === this.vsPositions[i]) slot.classList.add('has-pin');
+                // In dependencies phase, highlight the dep cursor target
+                if (this.vsPhase === 'dependencies' && isActive && i === this.vsCurrentBar) {
+                    // nothing special on the source bar's slots
+                } else if (this.vsPhase === 'dependencies' && i === this.vsDepCursor && this.vsCurrentBar !== i) {
+                    slot.classList.add('vs-dep-cursor');
+                }
+                channel.appendChild(slot);
+            }
+            row.appendChild(channel);
+
+            // Connections display for this bar
+            var connDiv = document.createElement('div');
+            connDiv.className = 'vs-bar-conn';
+            if (this.vsConnections[i]) {
+                var connParts = [];
+                for (var c = 0; c < this.vsConnections[i].length; c++) {
+                    var e = this.vsConnections[i][c];
+                    if (e.dir === 1) {
+                        connParts.push('<span class="conn-same">\u2192' + (e.target + 1) + '</span>');
+                    } else {
+                        connParts.push('<span class="conn-inv">\u21C4' + (e.target + 1) + '</span>');
+                    }
+                }
+                connDiv.innerHTML = connParts.join(' ');
+            }
+            row.appendChild(connDiv);
+
+            // In dep phase, highlight the cursor row
+            if (this.vsPhase === 'dependencies' && i === this.vsDepCursor && i !== this.vsCurrentBar) {
+                row.style.outline = '1px dashed var(--accent-glow)';
+                row.style.background = 'rgba(200,168,78,0.08)';
+            }
+
+            display.appendChild(row);
+        }
+    }
+
+    vsHandleKey(key) {
+        if (!this.vsActive) return false;
+
+        if (key === 'Escape') {
+            this.vsCancel();
+            return true;
+        }
+
+        if (this.vsPhase === 'positions') {
+            return this.vsHandlePositionKey(key);
+        } else if (this.vsPhase === 'dependencies') {
+            return this.vsHandleDependencyKey(key);
+        } else if (this.vsPhase === 'done') {
+            if (key === 'Enter') {
+                this.vsFinish();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    vsHandlePositionKey(key) {
+        var idx = this.vsCurrentBar;
+        if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
+            if (this.vsPositions[idx] > 0) this.vsPositions[idx]--;
+            this.vsRender();
+            return true;
+        }
+        if (key === 'ArrowRight' || key === 'd' || key === 'D') {
+            if (this.vsPositions[idx] < this.vsChannelWidth - 1) this.vsPositions[idx]++;
+            this.vsRender();
+            return true;
+        }
+        if (key === 'Enter') {
+            this.log('Bar ' + (idx + 1) + ' pin set at position ' + this.vsPositions[idx] + '.', 'info');
+            this.vsCurrentBar++;
+            if (this.vsCurrentBar >= this.vsPlateCount) {
+                // Move to dependencies phase
+                this.vsPhase = 'dependencies';
+                this.vsCurrentBar = 0;
+                this.vsDepCursor = this.vsCurrentBar === 0 ? 1 : 0;
+                this.log('Phase 2 \u2014 Set dependencies. Navigate and link bars.', 'accent');
+            }
+            this.vsRender();
+            return true;
+        }
+        return false;
+    }
+
+    vsHandleDependencyKey(key) {
+        var idx = this.vsCurrentBar;
+        if (key === 'ArrowUp' || key === 'w' || key === 'W') {
+            // Move dep cursor to previous bar (skip self)
+            do {
+                this.vsDepCursor = (this.vsDepCursor - 1 + this.vsPlateCount) % this.vsPlateCount;
+            } while (this.vsDepCursor === idx);
+            this.vsRender();
+            return true;
+        }
+        if (key === 'ArrowDown' || key === 's' || key === 'S') {
+            // Move dep cursor to next bar (skip self)
+            do {
+                this.vsDepCursor = (this.vsDepCursor + 1) % this.vsPlateCount;
+            } while (this.vsDepCursor === idx);
+            this.vsRender();
+            return true;
+        }
+        if (key === 'ArrowRight' || key === 'd' || key === 'D') {
+            // Add/toggle same-direction connection to cursor target
+            this.vsToggleConnection(idx, this.vsDepCursor, 1);
+            this.vsRender();
+            return true;
+        }
+        if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
+            // Add/toggle inverse connection to cursor target
+            this.vsToggleConnection(idx, this.vsDepCursor, -1);
+            this.vsRender();
+            return true;
+        }
+        if (key === 'Enter') {
+            var connCount = this.vsConnections[idx] ? this.vsConnections[idx].length : 0;
+            this.log('Bar ' + (idx + 1) + ' links set (' + connCount + ' connections).', 'info');
+            this.vsCurrentBar++;
+            if (this.vsCurrentBar >= this.vsPlateCount) {
+                this.vsPhase = 'done';
+                this.log('Setup complete! Press Enter to start.', 'success');
+            } else {
+                this.vsDepCursor = this.vsCurrentBar === 0 ? 1 : 0;
+                if (this.vsDepCursor === this.vsCurrentBar) this.vsDepCursor = (this.vsCurrentBar + 1) % this.vsPlateCount;
+            }
+            this.vsRender();
+            return true;
+        }
+        return false;
+    }
+
+    vsToggleConnection(src, target, dir) {
+        if (!this.vsConnections[src]) this.vsConnections[src] = [];
+        // Check if connection already exists to this target
+        var existing = -1;
+        for (var i = 0; i < this.vsConnections[src].length; i++) {
+            if (this.vsConnections[src][i].target === target) {
+                existing = i;
+                break;
+            }
+        }
+        if (existing >= 0) {
+            if (this.vsConnections[src][existing].dir === dir) {
+                // Same direction pressed again: remove the connection
+                this.vsConnections[src].splice(existing, 1);
+                if (this.vsConnections[src].length === 0) delete this.vsConnections[src];
+                this.log('  Removed link ' + (src+1) + '\u2192' + (target+1), 'info');
+            } else {
+                // Switch direction
+                this.vsConnections[src][existing].dir = dir;
+                var label = dir === 1 ? 'same' : 'inverse';
+                this.log('  Link ' + (src+1) + '\u2192' + (target+1) + ' switched to ' + label, 'info');
+            }
+        } else {
+            // Add new connection
+            this.vsConnections[src].push({ target: target, dir: dir });
+            var label2 = dir === 1 ? 'same' : 'inverse';
+            this.log('  Added link ' + (src+1) + '\u2192' + (target+1) + ' (' + label2 + ')', 'info');
+        }
+    }
+
+    vsSkipBar() {
+        if (!this.vsActive) return;
+        if (this.vsPhase === 'positions') {
+            this.log('Bar ' + (this.vsCurrentBar + 1) + ' pin set at position ' + this.vsPositions[this.vsCurrentBar] + '.', 'info');
+            this.vsCurrentBar++;
+            if (this.vsCurrentBar >= this.vsPlateCount) {
+                this.vsPhase = 'dependencies';
+                this.vsCurrentBar = 0;
+                this.vsDepCursor = 1;
+                this.log('Phase 2 \u2014 Set dependencies.', 'accent');
+            }
+        } else if (this.vsPhase === 'dependencies') {
+            this.log('Bar ' + (this.vsCurrentBar + 1) + ' skipped (no links).', 'info');
+            this.vsCurrentBar++;
+            if (this.vsCurrentBar >= this.vsPlateCount) {
+                this.vsPhase = 'done';
+                this.log('Setup complete! Press Enter to start.', 'success');
+            } else {
+                this.vsDepCursor = this.vsCurrentBar === 0 ? 1 : 0;
+                if (this.vsDepCursor === this.vsCurrentBar) this.vsDepCursor = (this.vsCurrentBar + 1) % this.vsPlateCount;
+            }
+        }
+        this.vsRender();
+    }
+
+    vsCancel() {
+        this.vsActive = false;
+        document.getElementById('vsActions').style.display = 'none';
+        document.getElementById('vsStatus').textContent = 'Cancelled.';
+        document.getElementById('vsLockDisplay').innerHTML = '';
+        document.getElementById('vsPhase1').className = 'vs-phase';
+        document.getElementById('vsPhase2').className = 'vs-phase';
+        document.getElementById('vsPhase3').className = 'vs-phase';
+        document.getElementById('vsCheatContent').textContent = 'Setup cancelled. Select source and click New Lock to try again.';
+        this.log('Visual set cancelled.', 'fail');
+    }
+
+    vsFinish() {
+        var center = this.vsCenter;
+        var channelWidth = this.vsChannelWidth;
+
+        // Build plates from visual set data
+        this.plates = [];
+        for (var i = 0; i < this.vsPlateCount; i++) {
+            this.plates.push({
+                initial_pos: this.vsPositions[i],
+                current_pos: this.vsPositions[i],
+                target_pos: center,
+                min_pos: 0,
+                max_pos: channelWidth - 1
+            });
+        }
+        this.connections = {};
+        var vsKeys = Object.keys(this.vsConnections);
+        for (var k = 0; k < vsKeys.length; k++) {
+            var src = vsKeys[k];
+            this.connections[src] = this.vsConnections[src].slice();
+        }
+
+        // Check solvability
+        var result = this.isSolvable(this.plates, this.connections);
+        if (!result.solvable) {
+            this.log('WARNING: This configuration may not be solvable!', 'fail');
+            this.solution = [];
+        } else {
+            this.solution = result.steps;
+        }
+
+        this.vsActive = false;
+        document.getElementById('vsActions').style.display = 'none';
+
+        // Log setup info
+        this.clearLog();
+        var self = this;
+        var edgeCount = Object.keys(this.connections).reduce(function(sum, k2) { return sum + self.connections[k2].length; }, 0);
+        this.log('Lock configured via Visual Set: ' + this.plates.length + ' bars.', 'info');
+        this.log('Connections: ' + this.formatConnections() + ' (' + edgeCount + ' edges)', 'info');
+        if (this.solution.length > 0) {
+            this.log('Puzzle solvable in ' + this.solution.length + ' moves.', 'success');
+        }
+
+        this.onModeChange();
+        this.render();
+    }
+
+    resetCurrent() {
+        if (this.plates.length === 0) return;
+        for (var i = 0; i < this.plates.length; i++) {
+            this.plates[i].current_pos = this.plates[i].initial_pos;
+        }
+        this.mistakesCount = 0;
+        this.picksRemaining = this.picksTotal;
+        this.selectedPlate = 0;
+        this.isSolved = false;
+        this.isGameOver = false;
+        this.totalMoves = 0;
+        this.solveIdx = 0;
+        this.log('Lock reset to initial state.', 'info');
+        this.render();
+    }
+
+    /* === MOVEMENT LOGIC (Spec Section 4) ===
+     *
+     * 1. Identify Movers: selected plate + all downstream via directed connections
+     * 2. Boundary Check: check current_pos vs min_pos/max_pos for ALL movers
+     * 3. Success: increment/decrement current_pos for all movers
+     * 4. Failure (The Wall): movement blocked, trigger MISTAKE EVENT
+     *
+     * Controls are counter-intuitive per spec:
+     * Player shifts the plate. Tumbler is stationary.
+     * Pressing RIGHT shifts plate right, tumbler appears to move LEFT in channel.
+     * Visual pin position is rendered at (max_pos + min_pos) - current_pos.
+     */
+
+    move(direction) {
+        if (this.isSolved || this.isGameOver) return;
+        if (this.mode === 'solve') return;
+
+        // Step 1: Identify all plates that move (with direction multipliers)
+        var movers = this.getMovers(this.selectedPlate, this.connections);
+
+        // Step 2: Boundary check for ALL movers
+        var blocked = false;
+        for (var i = 0; i < movers.length; i++) {
+            var mover = movers[i];
+            var newPos = this.plates[mover.plate].current_pos + direction * mover.dirMul;
+            if (newPos < this.plates[mover.plate].min_pos || newPos > this.plates[mover.plate].max_pos) {
+                blocked = true;
+                break;
+            }
+        }
+
+        if (blocked) {
+            // Step 4: MISTAKE EVENT
+            this.handleMistake(direction);
+        } else {
+            // Step 3: Success - shift all movers (each with its own direction)
+            for (var j = 0; j < movers.length; j++) {
+                this.plates[movers[j].plate].current_pos += direction * movers[j].dirMul;
+            }
+            this.totalMoves++;
+
+            var dirLabel = direction === -1 ? '\u2190' : '\u2192';
+            var selPlate = this.selectedPlate;
+            if (movers.length > 1) {
+                var dragged = movers.filter(function(m) { return m.plate !== selPlate; }).map(function(m) {
+                    return (m.plate + 1) + (m.dirMul === -1 ? '\u21C4' : '');
+                });
+                this.log('Plate ' + (this.selectedPlate + 1) + ' ' + dirLabel + ' (dragged: ' + dragged.join(',') + ')', 'success');
+            } else {
+                this.log('Plate ' + (this.selectedPlate + 1) + ' ' + dirLabel, 'success');
+            }
+
+            // Win condition (Spec Section 6): check after every successful movement
+            if (this.checkWin()) {
+                this.isSolved = true;
+                this.log('Lock opened in ' + this.totalMoves + ' moves!', 'success');
+            }
+        }
+
+        this.render();
+    }
+
+    /*
+     * Handle a mistake event (wall collision).
+     * Per spec Section 5:
+     * - Level 0: Pick breaks after 2 mistakes (on 3rd). FULL RESET.
+     * - Level 1: Pick breaks after 4 mistakes (on 5th). Progress saved.
+     * - Level 2: Pick breaks after 6 mistakes (on 7th). Progress saved.
+     * - mistakes_count resets to 0 when a pick breaks.
+     */
+    handleMistake(direction) {
+        this.mistakesCount++;
+        var dirLabel = direction === -1 ? '\u2190' : '\u2192';
+        var tolerance = this.getMistakeTolerance();
+
+        this.log('Plate ' + (this.selectedPlate + 1) + ' ' + dirLabel + ' \u2014 *clank!* Hit wall. (' + this.mistakesCount + '/' + tolerance + ')', 'fail');
+
+        // Visual feedback: shake + red flash
+        this.flashMistake();
+
+        if (this.mode === 'game') {
+            if (this.mistakesCount >= tolerance) {
+                this.picksRemaining--;
+                this.log('*SNAP!* Lockpick broke! (' + this.picksRemaining + ' remaining)', 'fail');
+
+                if (this.picksRemaining <= 0) {
+                    this.isGameOver = true;
+                    this.log('No lockpicks left. Lock jammed.', 'fail');
+                    return;
+                }
+
+                if (this.skillLevel === 0) {
+                    // Level 0: BRUTAL - full reset, all plates revert to initial_pos
+                    for (var i = 0; i < this.plates.length; i++) {
+                        this.plates[i].current_pos = this.plates[i].initial_pos;
+                    }
+                    this.log('Full reset \u2014 all plates returned to start.', 'fail');
+                }
+                // Level 1 & 2: FORGIVING - progress saved
+
+                // mistakes_count resets to 0 when a pick breaks
+                this.mistakesCount = 0;
+            }
+        }
+    }
+
+    getMistakeTolerance() {
+        return [2, 4, 6][this.skillLevel] || 2;
+    }
+
+    checkWin() {
+        return this.plates.every(function(p) { return p.current_pos === p.target_pos; });
+    }
+
+    /* === PLATE SELECTION === */
+
+    selectPrev() {
+        if (this.plates.length === 0) return;
+        this.selectedPlate = (this.selectedPlate - 1 + this.plates.length) % this.plates.length;
+        this.render();
+    }
+
+    selectNext() {
+        if (this.plates.length === 0) return;
+        this.selectedPlate = (this.selectedPlate + 1) % this.plates.length;
+        this.render();
+    }
+
+    selectPlate(idx) {
+        if (idx >= 0 && idx < this.plates.length) {
+            this.selectedPlate = idx;
+            this.render();
+        }
+    }
+
+    /* === SOLUTION VIEWER === */
+
+    solveStep() {
+        if (this.solution.length === 0) {
+            this.log('No precomputed solution available.', 'fail');
+            return;
+        }
+        if (this.isSolved) return;
+        if (this.solveIdx >= this.solution.length) {
+            this.log('Solution fully applied.', 'accent');
+            return;
+        }
+
+        // When starting from step 0, reset to initial state
+        // (solution was computed from initial positions)
+        if (this.solveIdx === 0) {
+            for (var r = 0; r < this.plates.length; r++) {
+                this.plates[r].current_pos = this.plates[r].initial_pos;
+            }
+        }
+
+        var step = this.solution[this.solveIdx];
+        var movers = this.getMovers(step.plate, this.connections);
+
+        for (var i = 0; i < movers.length; i++) {
+            this.plates[movers[i].plate].current_pos += step.dir * movers[i].dirMul;
+        }
+        this.solveIdx++;
+        this.selectedPlate = step.plate;
+
+        var dirLabel = step.dir === -1 ? '\u2190' : '\u2192';
+        this.log('Solution step ' + this.solveIdx + '/' + this.solution.length + ': Plate ' + (step.plate + 1) + ' ' + dirLabel, 'accent');
+
+        if (this.checkWin()) {
+            this.isSolved = true;
+            this.log('Lock opened!', 'success');
+        }
+
+        this.render();
+    }
+
+    solveAll() {
+        if (this.solution.length === 0) {
+            this.log('No precomputed solution available.', 'fail');
+            return;
+        }
+
+        // When starting from step 0, reset to initial state
+        // (solution was computed from initial positions)
+        if (this.solveIdx === 0) {
+            for (var r = 0; r < this.plates.length; r++) {
+                this.plates[r].current_pos = this.plates[r].initial_pos;
+            }
+        }
+
+        while (this.solveIdx < this.solution.length) {
+            var step = this.solution[this.solveIdx];
+            var movers = this.getMovers(step.plate, this.connections);
+            for (var i = 0; i < movers.length; i++) {
+                this.plates[movers[i].plate].current_pos += step.dir * movers[i].dirMul;
+            }
+            this.solveIdx++;
+        }
+
+        if (this.checkWin()) {
+            this.isSolved = true;
+            this.log('Applied all ' + this.solution.length + ' solution steps. Lock opened!', 'success');
+        } else {
+            // Debug: show final state vs target
+            var finalState = this.plates.map(function(p) { return p.current_pos; }).join(',');
+            var targetState = this.plates.map(function(p) { return p.target_pos; }).join(',');
+            this.log('Solution applied but lock not open! Final: ' + finalState + ' Target: ' + targetState, 'fail');
+        }
+        this.render();
+    }
+
+    solveReset() {
+        for (var i = 0; i < this.plates.length; i++) {
+            this.plates[i].current_pos = this.plates[i].initial_pos;
+        }
+        this.solveIdx = 0;
+        this.isSolved = false;
+        this.log('Solver reset.', 'info');
+        this.render();
+    }
+
+    getPuzzleJSON() {
+        var data = {
+            plates: this.plates.map(function(p) {
+                return {
+                    initial_pos: p.initial_pos,
+                    target_pos: p.target_pos,
+                    min_pos: p.min_pos,
+                    max_pos: p.max_pos
+                };
+            }),
+            connections: this.connections
+        };
+        return JSON.stringify(data);
+    }
+
+    showPuzzleJSON() {
+        if (this.plates.length === 0) {
+            this.log('No puzzle loaded.', 'fail');
+            return;
+        }
+        var json = this.getPuzzleJSON();
+        this.log('Puzzle JSON: ' + json, 'info');
+        document.getElementById('manualJSON').value = json;
+        // Show the manual area so user can see/copy the JSON regardless of source
+        document.getElementById('manualArea').classList.add('visible');
+    }
+
+    copyPuzzle() {
+        var json = this.getPuzzleJSON();
+        navigator.clipboard.writeText(json).then(function() {
+            game.log('Puzzle JSON copied to clipboard.', 'info');
+        }).catch(function() {
+            game.log('Copy failed. JSON: ' + json, 'info');
+        });
+    }
+
+    /* === UI RENDERING === */
+
+    onModeChange() {
+        var prevMode = this.mode;
+        this.mode = document.getElementById('gameMode').value;
+        document.getElementById('skillField').style.display = this.mode === 'game' ? '' : 'none';
+        document.getElementById('playerControls').style.display = this.mode === 'solve' ? 'none' : '';
+        document.getElementById('solveControls').classList.toggle('visible', this.mode === 'solve');
+        document.getElementById('lockpickArea').style.display = this.mode === 'game' ? '' : 'none';
+
+        // Reset solver state when entering solve mode so it starts fresh
+        if (this.mode === 'solve' && prevMode !== 'solve') {
+            this.solveIdx = 0;
+            this.isSolved = false;
+        }
+
+        var badge = document.getElementById('modeBadge');
+        var labels = { game: 'Game Mode', free: 'Free Practice', hint: 'Hint Mode', solve: 'Solution Viewer' };
+        badge.textContent = labels[this.mode];
+        badge.className = 'mode-badge ' + this.mode;
+
+        document.getElementById('connDisplay').style.display =
+            (this.mode === 'hint' || this.mode === 'solve') ? '' : 'none';
+
+        this.render();
+    }
+
+    render() {
+        this.renderPlates();
+        this.renderStatus();
+        this.renderConnections();
+        this.renderResult();
+        this.renderPickTool();
+        this.updateButtons();
+    }
+
+    /*
+     * Render plates as metal cassettes with horizontal channels.
+     *
+     * Per spec: the tumbler is stationary (rendered as a vertical brass line
+     * at the center of the lock body). Each plate is a rectangular metal
+     * cassette with a horizontal channel/track and grip ridges.
+     *
+     * The pin (tumbler peg) within each channel is rendered at the INVERSE
+     * of current_pos, reflecting the counter-intuitive control:
+     * pressing RIGHT shifts the plate right, making the tumbler appear to
+     * move LEFT within the channel.
+     *
+     * Visual pin position = (max_pos + min_pos) - current_pos
+     * Visual gap position = (max_pos + min_pos) - target_pos
+     */
+    renderPlates() {
+        var container = document.getElementById('plateContainer');
+        container.innerHTML = '';
+        var self = this;
+
+        for (var i = 0; i < this.plates.length; i++) {
+            (function(idx) {
+                var plate = self.plates[idx];
+                var isSelected = idx === self.selectedPlate && !self.isSolved && !self.isGameOver;
+                var isAligned = plate.current_pos === plate.target_pos;
+
+                var visualPinPos = plate.current_pos;
+                var visualGapPos = plate.target_pos;
+
+                var row = document.createElement('div');
+                row.className = 'plate-row';
+                if (isSelected) row.classList.add('selected');
+                row.onclick = function() { self.selectPlate(idx); };
+
+                // Label
+                var label = document.createElement('div');
+                label.className = 'plate-label';
+                label.textContent = idx + 1;
+                row.appendChild(label);
+
+                // Plate cassette
+                var cassette = document.createElement('div');
+                cassette.className = 'plate-cassette';
+
+                var body = document.createElement('div');
+                body.className = 'plate-body';
+
+                // Left grip ridges
+                var gripL = document.createElement('div');
+                gripL.className = 'plate-grip-left';
+                for (var g = 0; g < 4; g++) {
+                    var line = document.createElement('div');
+                    line.className = 'grip-line';
+                    gripL.appendChild(line);
+                }
+                body.appendChild(gripL);
+
+                // Horizontal channel
+                var channel = document.createElement('div');
+                channel.className = 'plate-channel';
+
+                var slots = document.createElement('div');
+                slots.className = 'channel-slots';
+
+                for (var pos = plate.min_pos; pos <= plate.max_pos; pos++) {
+                    var slot = document.createElement('div');
+                    slot.className = 'channel-slot';
+
+                    if (pos === visualGapPos) {
+                        slot.classList.add('is-gap');
+                    }
+
+                    if (pos === visualPinPos) {
+                        if (isAligned) slot.classList.add('aligned');
+                        var peg = document.createElement('div');
+                        peg.className = 'pin-peg';
+                        slot.appendChild(peg);
+                    }
+
+                    slots.appendChild(slot);
+                }
+
+                channel.appendChild(slots);
+                body.appendChild(channel);
+
+                // Right grip ridges
+                var gripR = document.createElement('div');
+                gripR.className = 'plate-grip-right';
+                for (var g2 = 0; g2 < 4; g2++) {
+                    var line2 = document.createElement('div');
+                    line2.className = 'grip-line';
+                    gripR.appendChild(line2);
+                }
+                body.appendChild(gripR);
+
+                // Connection badge
+                if (self.connections[idx] && self.connections[idx].length > 0) {
+                    var connBadge = document.createElement('div');
+                    connBadge.className = 'conn-badge';
+                    connBadge.textContent = self.connections[idx].map(function(e) {
+                        return (e.dir === -1 ? '\u21C4' : '\u2192') + (e.target + 1);
+                    }).join(' ');
+                    body.appendChild(connBadge);
+                }
+
+                // Hint mode: distance badge (shows INPUT direction needed)
+                if (self.mode === 'hint' && !isAligned) {
+                    var dist = plate.target_pos - plate.current_pos;
+                    var badge = document.createElement('div');
+                    badge.className = 'hint-badge';
+                    badge.textContent = dist > 0 ? '\u2192' + dist : '\u2190' + Math.abs(dist);
+                    body.appendChild(badge);
+                }
+
+                cassette.appendChild(body);
+                row.appendChild(cassette);
+                container.appendChild(row);
+            })(i);
+        }
+    }
+
+    renderStatus() {
+        var bar = document.getElementById('statusBar');
+        var aligned = this.plates.filter(function(p) { return p.current_pos === p.target_pos; }).length;
+        var parts = [];
+
+        parts.push('<div class="status-item"><span class="status-label">Aligned:</span><span class="status-value">' + aligned + '/' + this.plates.length + '</span></div>');
+        parts.push('<div class="status-item"><span class="status-label">Moves:</span><span class="status-value">' + this.totalMoves + '</span></div>');
+
+        if (this.mode === 'game') {
+            var tol = this.getMistakeTolerance();
+            var mistClass = this.mistakesCount >= tol ? 'status-value danger' : 'status-value';
+            parts.push('<div class="status-item"><span class="status-label">Mistakes:</span><span class="' + mistClass + '">' + this.mistakesCount + '/' + tol + '</span></div>');
+        }
+
+        if (this.mode === 'hint') {
+            var remaining = this.solveFromCurrent(30000);
+            var stepsLeft = remaining.solvable ? remaining.steps.length : '?';
+            parts.push('<div class="status-item"><span class="status-label">Steps to solve:</span><span class="status-value">' + stepsLeft + '</span></div>');
+        }
+
+        bar.innerHTML = parts.join('');
+    }
+
+    renderConnections() {
+        var el = document.getElementById('connDisplay');
+        if (el.style.display === 'none') return;
+
+        var edges = [];
+        var keys = Object.keys(this.connections);
+        for (var k = 0; k < keys.length; k++) {
+            var src = keys[k];
+            var targets = this.connections[src];
+            for (var t = 0; t < targets.length; t++) {
+                var arrow = targets[t].dir === -1 ? ' \u21C4 ' : ' \u2192 ';
+                edges.push('<span class="conn-edge">' + (parseInt(src) + 1) + arrow + (targets[t].target + 1) + '</span>');
+            }
+        }
+        el.innerHTML = edges.length > 0
+            ? '<strong>Connections (one-way, \u2192 same / \u21C4 inverse):</strong> ' + edges.join(' ')
+            : '<em>No connections (independent plates)</em>';
+    }
+
+    renderResult() {
+        var banner = document.getElementById('resultBanner');
+        banner.className = 'result-banner';
+        if (this.isSolved) {
+            banner.classList.add('win');
+            banner.textContent = '\u2637 Chest Opened';
+        } else if (this.isGameOver) {
+            banner.classList.add('lose');
+            banner.textContent = '\u2715 Lock Jammed';
+        }
+    }
+
+    renderPickTool() {
+        if (this.mode !== 'game') return;
+        var box = document.getElementById('pickCountBox');
+        box.textContent = this.picksRemaining;
+        box.className = 'pick-count-box';
+        if (this.picksRemaining <= 1) box.classList.add('danger');
+
+        var shaft = document.getElementById('pickShaft');
+        shaft.className = 'pick-shaft';
+        if (this.isGameOver) shaft.classList.add('broken');
+    }
+
+    updateButtons() {
+        var disabled = this.isSolved || this.isGameOver;
+        document.getElementById('btnUp').disabled = disabled;
+        document.getElementById('btnDown').disabled = disabled;
+        document.getElementById('btnLeft').disabled = disabled;
+        document.getElementById('btnRight').disabled = disabled;
+    }
+
+    flashMistake() {
+        var rows = document.querySelectorAll('.plate-row');
+        var row = rows[this.selectedPlate];
+        if (row) {
+            row.classList.add('mistake');
+            setTimeout(function() { row.classList.remove('mistake'); }, 400);
+        }
+    }
+
+    /* === UTILITY === */
+
+    toggleManualInput() {
+        var src = document.getElementById('lockSource').value;
+        document.getElementById('manualArea').classList.toggle('visible', src === 'manual');
+        document.getElementById('visualSetArea').classList.toggle('visible', src === 'visual');
+    }
+
+    formatConnections() {
+        var parts = [];
+        var keys = Object.keys(this.connections);
+        for (var k = 0; k < keys.length; k++) {
+            var src = keys[k];
+            var targets = this.connections[src];
+            for (var t = 0; t < targets.length; t++) {
+                var arrow = targets[t].dir === -1 ? '\u21C4' : '\u2192';
+                parts.push((parseInt(src) + 1) + arrow + (targets[t].target + 1));
+            }
+        }
+        return parts.length > 0 ? parts.join(', ') : 'none';
+    }
+
+    log(msg, cls) {
+        if (!cls) cls = '';
+        var el = document.getElementById('consoleLog');
+        var entry = document.createElement('div');
+        entry.className = 'log-entry ' + cls;
+        entry.textContent = '\u203A ' + msg;
+        el.prepend(entry);
+    }
+
+    clearLog() {
+        document.getElementById('consoleLog').innerHTML = '';
+    }
+}
+
+/* === INIT & KEYBOARD CONTROLS === */
+
+var game = new GothicLockpick();
+
+document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+    // Visual Set mode intercepts all keys
+    if (game.vsActive) {
+        e.preventDefault();
+        game.vsHandleKey(e.key);
+        return;
+    }
+
+    switch (e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+            e.preventDefault();
+            game.selectPrev();
+            break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+            e.preventDefault();
+            game.selectNext();
+            break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            e.preventDefault();
+            game.move(-1);
+            break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            e.preventDefault();
+            game.move(1);
+            break;
+        case ' ':
+            e.preventDefault();
+            if (game.mode === 'solve') game.solveStep();
+            break;
+        case 'r':
+        case 'R':
+            if (!e.ctrlKey) game.resetCurrent();
+            break;
+        case 'Escape':
+            break;
+    }
+});
+</script>
+</body>
+</html>
