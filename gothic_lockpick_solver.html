@@ -2,7 +2,7 @@
     Gothic Lockpick — Plate Alignment Puzzle Engine & Solver
     
     A browser-based lockpicking mini-game inspired by the Gothic 1 Remake.
-    Includes a BFS-based puzzle solver, a visual puzzle builder, and multiple
+    Includes a BFS-based puzzle solver, visual puzzle builder, and multiple
     game modes for practice and analysis.
 
     Author:  Maor Gaon
@@ -24,9 +24,9 @@
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
     OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
-    FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OTHER
+    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     DEALINGS IN THE SOFTWARE.
 
     DISCLAIMER: This project is a fan-made tool and is not affiliated with,
@@ -309,33 +309,57 @@
         .plate-channel {
             flex: 1;
             height: 18px;
-            background: var(--channel-bg);
-            border: 1px solid var(--channel-border);
+            background: transparent;
+            border: none;
             border-radius: 2px;
             display: flex;
             align-items: center;
+            justify-content: center;
             position: relative;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+            overflow: visible;
         }
 
         .channel-slots {
             display: flex;
             align-items: center;
-            width: 100%;
             height: 100%;
             position: relative;
+            justify-content: center;
+            gap: 1px;
+            width: 100%;
         }
 
         .channel-slot {
-            flex: 1;
+            width: 22px;
+            flex-shrink: 0;
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             border-right: 1px solid rgba(255,255,255,0.04);
+            background: var(--channel-bg);
+            border-top: 1px solid var(--channel-border);
+            border-bottom: 1px solid var(--channel-border);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
         }
         .channel-slot:last-child { border-right: none; }
+        .channel-slot .slot-num {
+            font-size: 0.45rem;
+            color: rgba(255,255,255,0.18);
+            user-select: none;
+            position: absolute;
+            bottom: 1px;
+            font-family: monospace;
+        }
+        .channel-slot .pin-peg ~ .slot-num { display: none; }
+
+        .channel-slot.beyond-bar {
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            width: 22px;
+        }
 
         .channel-slot.is-gap {
             background: rgba(50,45,30,0.3);
@@ -560,6 +584,51 @@
         }
         .solution-controls.visible { display: flex; }
 
+        .solution-list {
+            display: none;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 0.6rem;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            max-height: 110px;
+            overflow-y: auto;
+            justify-content: center;
+        }
+        .solution-list.visible { display: flex; }
+        .solution-list:empty { display: none; }
+        .sol-step {
+            font-family: monospace;
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            background: var(--metal-dark);
+            color: var(--text-dim);
+            border: 1px solid var(--panel-border);
+            min-width: 1.8rem;
+            text-align: center;
+            user-select: none;
+        }
+        .sol-step.done {
+            background: rgba(90,158,74,0.18);
+            color: var(--success);
+            border-color: rgba(90,158,74,0.35);
+        }
+        .sol-step.current {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 6px var(--accent-glow);
+        }
+        .sol-step .sol-num {
+            font-size: 0.5rem;
+            opacity: 0.55;
+            margin-right: 2px;
+        }
+
         .control-legend {
             display: flex;
             flex-wrap: wrap;
@@ -688,23 +757,37 @@
         .vs-dir-arrow.inv { color: var(--fail); }
         .vs-dir-arrow.source { color: var(--accent-glow); }
         .vs-bar-channel {
-            display: flex; gap: 2px; flex: 1;
+            display: flex; gap: 2px; justify-content: center;
+            width: 230px; flex-shrink: 0;
         }
         .vs-bar-slot {
-            width: 20px; height: 18px; border-radius: 2px;
+            width: 14px; height: 18px; border-radius: 2px;
             background: var(--plate-bg); border: 1px solid var(--plate-border);
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.55rem; position: relative;
+            font-size: 0.55rem; position: relative; flex-shrink: 0;
         }
+        .vs-bar-slot .slot-num { font-size: 0.45rem; color: rgba(255,255,255,0.2); user-select: none; }
+        .vs-bar-slot.has-pin .slot-num { display: none; }
+        .vs-bar-slot.beyond-bar { background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.02); }
         .vs-bar-slot.center-slot { border-color: var(--brass); }
         .vs-bar-slot.has-pin { background: var(--pin-brass); border-color: var(--pin-glow); }
         .vs-bar-slot.has-pin::after {
             content: ''; width: 6px; height: 6px;
             background: var(--brass-light); border-radius: 50%;
         }
+        .vs-pin-peg {
+            width: 8px !important; height: 8px !important;
+            position: absolute !important; z-index: 5;
+        }
+        .vs-bar-slot.aligned .vs-pin-peg {
+            width: 10px !important; height: 10px !important;
+            box-shadow: 0 0 6px rgba(212,184,48,0.7), 0 0 12px rgba(212,184,48,0.3) !important;
+        }
+        .vs-bar-slot.has-pin::after { display: none; }
+        .vs-bar-slot.has-pin { background: transparent; border-color: var(--pin-glow); }
         .vs-bar-conn {
             font-size: 0.6rem; color: var(--text-dim); margin-left: 0.3rem;
-            white-space: nowrap; flex-shrink: 0; min-width: 4rem;
+            white-space: nowrap; flex-shrink: 0; width: 6rem; overflow: hidden;
         }
         .vs-bar-conn .conn-same { color: var(--success); }
         .vs-bar-conn .conn-inv { color: var(--fail); }
@@ -728,14 +811,91 @@
             border-radius: 3px; font-size: 0.6rem; margin: 0 0.1rem;
             font-family: monospace; color: var(--accent);
         }
-        .vs-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
+        .vs-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+        .vs-touch-pad {
+            margin-top: 0.6rem;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .vs-touch-hint {
+            font-size: 0.6rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 0.2rem;
+            min-height: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+        .vs-touch-row { display: flex; gap: 6px; justify-content: center; }
+        .vs-tbtn {
+            width: 44px; height: 44px;
+            border-radius: 4px;
+            border: 1px solid var(--accent);
+            background: linear-gradient(180deg, rgba(200,168,78,0.2) 0%, rgba(200,168,78,0.05) 100%);
+            color: var(--accent);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .vs-tbtn:active {
+            background: rgba(200,168,78,0.45);
+            transform: scale(0.93);
+        }
+        .vs-tbtn.vs-tbtn-ok {
+            border-color: var(--success);
+            color: var(--success);
+            background: linear-gradient(180deg, rgba(90,158,74,0.25) 0%, rgba(90,158,74,0.05) 100%);
+        }
+        .vs-tbtn.vs-tbtn-ok:active { background: rgba(90,158,74,0.45); }
+        .vs-tbtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* Touch-friendly affordances on VS rows and slots */
+        .vs-bar-row {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .vs-bar-slot { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .plate-row {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-y;
+        }
 
         @media (max-width: 550px) {
             body { padding: 0.5rem; }
             .section { padding: 0.75rem 1rem; }
             .header h1 { font-size: 0.9rem; }
-            .lock-body { padding: 1rem 1.5rem; }
-            .ctrl-btn { width: 46px; height: 46px; font-size: 1rem; }
+            .header .subtitle { display: none; }
+            .lock-body { padding: 0.75rem 0.5rem; }
+            .ctrl-btn { width: 56px; height: 56px; font-size: 1.2rem; }
+            .btn { padding: 0.55rem 0.9rem; font-size: 0.7rem; }
+            input[type="text"] { width: 100%; }
+            .setup-row { gap: 0.5rem; }
+            .plate-grip-left, .plate-grip-right { width: 12px; padding: 4px 2px; }
+            .plate-label { min-width: 18px; font-size: 0.7rem; }
+            .channel-slot { width: 18px; }
+            .vs-bar-channel { width: 192px; }
+            .vs-bar-slot { width: 12px; height: 20px; }
+            .vs-bar-conn { width: 4.5rem; font-size: 0.55rem; }
+            .vs-bar-label { width: 1.4rem; }
+            .vs-dir-arrow { width: 1.1rem; }
+            .vs-tbtn { width: 52px; height: 52px; font-size: 1.2rem; }
+            .sol-step { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+            .control-legend { display: none; }
+        }
+        @media (max-width: 380px) {
+            .vs-bar-channel { width: 168px; }
+            .vs-bar-slot { width: 10px; height: 18px; }
+            .channel-slot { width: 16px; }
         }
     </style>
 </head>
@@ -840,7 +1000,21 @@
             </div>
             <div class="vs-actions" id="vsActions" style="display:none;">
                 <button class="btn" onclick="game.vsCancel()">Cancel</button>
-                <button class="btn" onclick="game.vsSkipBar()">Skip Bar (no links)</button>
+                <button class="btn" onclick="game.vsSkipBar()" id="vsSkipBtn">Skip Bar (no links)</button>
+            </div>
+            <div class="vs-touch-pad" id="vsTouchPad" style="display:none;">
+                <div class="vs-touch-hint" id="vsTouchHint"></div>
+                <div class="vs-touch-row">
+                    <button class="vs-tbtn" id="vsTbtnUp" onclick="game.vsTouch('ArrowUp')" title="Up">&#9650;</button>
+                </div>
+                <div class="vs-touch-row">
+                    <button class="vs-tbtn" id="vsTbtnLeft" onclick="game.vsTouch('ArrowLeft')" title="Left / Inverse link">&#9664;</button>
+                    <button class="vs-tbtn vs-tbtn-ok" id="vsTbtnEnter" onclick="game.vsTouch('Enter')" title="Confirm / Next">&#10003;</button>
+                    <button class="vs-tbtn" id="vsTbtnRight" onclick="game.vsTouch('ArrowRight')" title="Right / Same link">&#9654;</button>
+                </div>
+                <div class="vs-touch-row">
+                    <button class="vs-tbtn" id="vsTbtnDown" onclick="game.vsTouch('ArrowDown')" title="Down">&#9660;</button>
+                </div>
             </div>
         </div>
     </div>
@@ -873,16 +1047,16 @@
             <div class="ctrl-group">
                 <div class="ctrl-group-label">Select Plate</div>
                 <div style="display:flex; gap:0.5rem;">
-                    <button class="ctrl-btn" id="btnUp" onclick="game.selectPrev()" title="Previous plate (W)">&#9650;</button>
-                    <button class="ctrl-btn" id="btnDown" onclick="game.selectNext()" title="Next plate (S)">&#9660;</button>
+                    <button class="ctrl-btn" id="btnUp" onclick="game.selectNext()" title="Higher plate (W)">&#9650;</button>
+                    <button class="ctrl-btn" id="btnDown" onclick="game.selectPrev()" title="Lower plate (S)">&#9660;</button>
                 </div>
             </div>
             <div class="ctrl-separator"></div>
             <div class="ctrl-group">
                 <div class="ctrl-group-label">Move Plate</div>
                 <div style="display:flex; gap:0.5rem;">
-                    <button class="ctrl-btn" id="btnLeft" onclick="game.move(-1)" title="Move left (A)">&#9668;</button>
-                    <button class="ctrl-btn" id="btnRight" onclick="game.move(1)" title="Move right (D)">&#9658;</button>
+                    <button class="ctrl-btn" id="btnLeft" onclick="game.move(1)" title="Move bar left (A)">&#9668;</button>
+                    <button class="ctrl-btn" id="btnRight" onclick="game.move(-1)" title="Move bar right (D)">&#9658;</button>
                 </div>
             </div>
         </div>
@@ -892,9 +1066,10 @@
             <button class="btn" onclick="game.solveAll()">Solve All</button>
             <button class="btn" onclick="game.copyPuzzle()">Copy Puzzle</button>
         </div>
+        <div class="solution-list" id="solutionList"></div>
         <div class="control-legend">
-            <div class="legend-item"><span class="key-icon">A</span><span class="key-icon">D</span> Move left/right</div>
-            <div class="legend-item"><span class="key-icon">W</span><span class="key-icon">S</span> Move up/down</div>
+            <div class="legend-item"><span class="key-icon">A</span><span class="key-icon">D</span> Slide bar left/right</div>
+            <div class="legend-item"><span class="key-icon">W</span><span class="key-icon">S</span> Select bar up/down</div>
             <div class="legend-item"><span class="key-icon">ESC</span> Cancel</div>
             <div class="legend-item"><span class="key-icon">R</span> Reset</div>
         </div>
@@ -1135,8 +1310,7 @@ class GothicLockpick {
 
                     var newPositions = positions.slice();
                     for (var m2 = 0; m2 < movers.length; m2++) {
-                        var mover2 = movers[m2];
-                        newPositions[mover2.plate] += dir * mover2.dirMul;
+                        newPositions[movers[m2].plate] += dir * movers[m2].dirMul;
                     }
                     var newState = newPositions.join(',');
 
@@ -1162,30 +1336,18 @@ class GothicLockpick {
     /**
      * Get all plates affected when a given plate moves, with their
      * direction multipliers. Each connection can be same-dir (1) or
-     * inverse (-1). Multipliers compound through chains.
+     * inverse (-1). Only direct connections from the moved plate are affected
+     * (non-transitive, matching Gothic's actual mechanics).
      *
      * Returns: [{plate: idx, dirMul: 1 or -1}, ...]
      * The first entry is always the source plate with dirMul=1.
      */
     getMovers(plateIdx, connections) {
-        var visited = {};
-        var result = [];
-        // BFS/DFS with direction tracking
-        var stack = [{ plate: plateIdx, dirMul: 1 }];
-        while (stack.length > 0) {
-            var item = stack.pop();
-            if (visited[item.plate] !== undefined) continue;
-            visited[item.plate] = item.dirMul;
-            result.push(item);
-            if (connections[item.plate]) {
-                for (var i = 0; i < connections[item.plate].length; i++) {
-                    var edge = connections[item.plate][i];
-                    if (visited[edge.target] === undefined) {
-                        // Compound the direction: if this plate is inverse
-                        // and the edge is inverse, downstream is same (mul * mul)
-                        stack.push({ plate: edge.target, dirMul: item.dirMul * edge.dir });
-                    }
-                }
+        var result = [{ plate: plateIdx, dirMul: 1 }];
+        if (connections[plateIdx]) {
+            for (var i = 0; i < connections[plateIdx].length; i++) {
+                var edge = connections[plateIdx][i];
+                result.push({ plate: edge.target, dirMul: edge.dir });
             }
         }
         return result;
@@ -1365,14 +1527,40 @@ class GothicLockpick {
         if (this.solution.length > 0) {
             this.log('Puzzle solvable in ' + this.solution.length + ' moves.', 'info');
         }
-        // Log each plate's target for clarity
-        for (var i = 0; i < this.plates.length; i++) {
-            var p = this.plates[i];
-            this.log('  Plate ' + (i+1) + ': start=' + p.initial_pos + ' target=' + p.target_pos, 'info');
-        }
+
+        // Show the loaded puzzle in the Visual Set UI (done phase)
+        this.vsShowLoaded();
 
         this.onModeChange();
         this.render();
+    }
+
+    /**
+     * Populate the Visual Set UI from the currently loaded puzzle
+     * and display it in the "done" (read-only review) phase.
+     */
+    vsShowLoaded() {
+        this.vsPlateCount = this.plates.length;
+        this.vsChannelWidth = this.plates[0].max_pos - this.plates[0].min_pos + 1;
+        this.vsCenter = this.plates[0].target_pos;
+        this.vsCurrentBar = 0;
+        this.vsPositions = [];
+        for (var i = 0; i < this.plates.length; i++) {
+            this.vsPositions.push(this.plates[i].initial_pos);
+        }
+        this.vsConnections = {};
+        var connKeys = Object.keys(this.connections);
+        for (var k = 0; k < connKeys.length; k++) {
+            this.vsConnections[connKeys[k]] = this.connections[connKeys[k]].slice();
+        }
+        this.vsPhase = 'done';
+        this.vsActive = false;
+
+        // Show the visual set area
+        document.getElementById('visualSetArea').classList.add('visible');
+        document.getElementById('vsActions').style.display = 'none';
+        document.getElementById('vsTouchPad').style.display = 'none';
+        this.vsRender();
     }
 
     /* === VISUAL SET MODE === */
@@ -1388,7 +1576,7 @@ class GothicLockpick {
         this.vsPlateCount = plateCount;
         this.vsChannelWidth = channelWidth;
         this.vsCenter = center;
-        this.vsCurrentBar = 0;
+        this.vsCurrentBar = plateCount - 1;
         this.vsPositions = [];
         this.vsConnections = {};
         this.vsDepCursor = 0; // which OTHER bar the dep cursor is on
@@ -1403,6 +1591,7 @@ class GothicLockpick {
         this.clearLog();
         this.log('Visual Set: Configure ' + plateCount + ' bars. Phase 1 \u2014 set starting pin positions.', 'accent');
         document.getElementById('vsActions').style.display = 'flex';
+        document.getElementById('vsTouchPad').style.display = 'flex';
         this.vsRender();
     }
 
@@ -1418,7 +1607,7 @@ class GothicLockpick {
         // Status
         var status = document.getElementById('vsStatus');
         if (this.vsPhase === 'positions') {
-            status.textContent = 'Bar ' + (this.vsCurrentBar + 1) + '/' + this.vsPlateCount + ' \u2014 Position the pin with \u2190 \u2192, press Enter to confirm.';
+            status.textContent = 'Bar ' + (this.vsCurrentBar + 1) + '/' + this.vsPlateCount + ' \u2014 Slide the bar with \u2190 \u2192, press Enter to confirm.';
         } else if (this.vsPhase === 'dependencies') {
             status.textContent = 'Bar ' + (this.vsCurrentBar + 1) + '/' + this.vsPlateCount + ' \u2014 Navigate bars with \u2191 \u2193. \u2192 = same-dir link, \u2190 = inverse link. Enter = next bar.';
         } else {
@@ -1428,7 +1617,7 @@ class GothicLockpick {
         // Cheat sheet
         var cheat = document.getElementById('vsCheatContent');
         if (this.vsPhase === 'positions') {
-            cheat.innerHTML = '<span class="key">\u2190</span> <span class="key">\u2192</span> Move pin left/right<br>' +
+            cheat.innerHTML = '<span class="key">\u2190</span> <span class="key">\u2192</span> Slide bar left/right<br>' +
                 '<span class="key">Enter</span> Confirm pin position &amp; advance to next bar<br>' +
                 '<span class="key">Esc</span> Cancel setup';
         } else if (this.vsPhase === 'dependencies') {
@@ -1442,20 +1631,20 @@ class GothicLockpick {
             cheat.innerHTML = 'Lock configured! <span class="key">Enter</span> to start playing.';
         }
 
-        // Lock display
+        // Lock display (reversed: last bar on top to match Gothic layout)
         var display = document.getElementById('vsLockDisplay');
         display.innerHTML = '';
 
-        for (var i = 0; i < this.vsPlateCount; i++) {
+        for (var i = this.vsPlateCount - 1; i >= 0; i--) {
             var row = document.createElement('div');
             row.className = 'vs-bar-row';
             var isActive = (i === this.vsCurrentBar);
 
             if (this.vsPhase === 'positions') {
-                if (i < this.vsCurrentBar) row.classList.add('done-row');
+                if (i > this.vsCurrentBar) row.classList.add('done-row');
                 if (isActive) row.classList.add('active');
             } else if (this.vsPhase === 'dependencies') {
-                if (i < this.vsCurrentBar) row.classList.add('done-row');
+                if (i > this.vsCurrentBar) row.classList.add('done-row');
                 if (isActive) row.classList.add('vs-source');
             }
 
@@ -1494,20 +1683,65 @@ class GothicLockpick {
             row.appendChild(arrowDiv);
             row.appendChild(label);
 
-            // Channel slots
+            // Channel slots — bar-sliding visual (wider display, bar shifts)
             var channel = document.createElement('div');
             channel.className = 'vs-bar-channel';
-            for (var pos = 0; pos < this.vsChannelWidth; pos++) {
+            var barPos = this.vsPositions[i];
+            var vsMaxPos = this.vsChannelWidth - 1;
+            var vsDisplayWidth = 2 * vsMaxPos + 1;
+            var vsDisplayCenter = vsMaxPos;
+            var barLeftVs = vsDisplayCenter - barPos;
+            var barRightVs = vsDisplayCenter - barPos + vsMaxPos;
+            var gapDisplayVs = vsDisplayCenter - barPos + this.vsCenter; // notch at center of bar
+
+            for (var dp = 0; dp < vsDisplayWidth; dp++) {
                 var slot = document.createElement('div');
                 slot.className = 'vs-bar-slot';
-                if (pos === this.vsCenter) slot.classList.add('center-slot');
-                if (pos === this.vsPositions[i]) slot.classList.add('has-pin');
+
+                // Beyond bar range
+                if (dp < barLeftVs || dp > barRightVs) {
+                    slot.classList.add('beyond-bar');
+                }
+
+                // Center slot = lockpick position (always); add pin-peg visual
+                if (dp === vsDisplayCenter) {
+                    slot.classList.add('center-slot');
+                    var vsPeg = document.createElement('div');
+                    vsPeg.className = 'pin-peg vs-pin-peg';
+                    if (barPos === this.vsCenter) {
+                        slot.classList.add('aligned');
+                    }
+                    slot.appendChild(vsPeg);
+                }
+
+                // Notch (gap) in the bar at target (= center)
+                if (dp === gapDisplayVs && dp >= barLeftVs && dp <= barRightVs) {
+                    slot.classList.add('has-pin');
+                }
+
                 // In dependencies phase, highlight the dep cursor target
                 if (this.vsPhase === 'dependencies' && isActive && i === this.vsCurrentBar) {
                     // nothing special on the source bar's slots
                 } else if (this.vsPhase === 'dependencies' && i === this.vsDepCursor && this.vsCurrentBar !== i) {
                     slot.classList.add('vs-dep-cursor');
                 }
+                // Slot number in VS — channel position (center-slot always = 4)
+                var vsChannelPos = dp - vsDisplayCenter + 4;
+                if (dp >= barLeftVs && dp <= barRightVs && vsChannelPos >= 1 && vsChannelPos <= 7) {
+                    var num = document.createElement('span');
+                    num.className = 'slot-num';
+                    num.textContent = vsChannelPos;
+                    slot.appendChild(num);
+                }
+
+                // Slot tap: in positions phase, set this bar's position so the gap lands here
+                (function(self, barIdx, dpIdx, dispCenter) {
+                    slot.onclick = function(ev) {
+                        ev.stopPropagation();
+                        self.vsSlotTap(barIdx, dpIdx, dispCenter);
+                    };
+                })(this, i, dp, vsDisplayCenter);
+
                 channel.appendChild(slot);
             }
             row.appendChild(channel);
@@ -1535,8 +1769,71 @@ class GothicLockpick {
                 row.style.background = 'rgba(200,168,78,0.08)';
             }
 
+            // Tap/click handler for touch interaction
+            (function(self, barIdx) {
+                row.onclick = function() { self.vsRowTap(barIdx); };
+            })(this, i);
+
             display.appendChild(row);
         }
+
+        this.vsUpdateTouchPad();
+    }
+
+    vsRowTap(barIdx) {
+        if (!this.vsActive) return;
+        if (this.vsPhase === 'positions') {
+            // Jump current bar to the tapped row
+            if (barIdx !== this.vsCurrentBar) {
+                this.vsCurrentBar = barIdx;
+                this.vsRender();
+            }
+        } else if (this.vsPhase === 'dependencies') {
+            if (barIdx === this.vsCurrentBar) return;
+            // Always move dep cursor to the tapped row (for keyboard users)
+            this.vsDepCursor = barIdx;
+            // Cycle the connection state: none -> same -> inverse -> none
+            this.vsCycleConnection(this.vsCurrentBar, barIdx);
+            this.vsRender();
+        }
+    }
+
+    vsCycleConnection(src, target) {
+        if (!this.vsConnections[src]) this.vsConnections[src] = [];
+        var existing = -1;
+        for (var i = 0; i < this.vsConnections[src].length; i++) {
+            if (this.vsConnections[src][i].target === target) { existing = i; break; }
+        }
+        if (existing < 0) {
+            // none -> same
+            this.vsConnections[src].push({ target: target, dir: 1 });
+            this.log('  Added link ' + (src+1) + '\u2192' + (target+1) + ' (same)', 'info');
+        } else if (this.vsConnections[src][existing].dir === 1) {
+            // same -> inverse
+            this.vsConnections[src][existing].dir = -1;
+            this.log('  Link ' + (src+1) + '\u2192' + (target+1) + ' switched to inverse', 'info');
+        } else {
+            // inverse -> none
+            this.vsConnections[src].splice(existing, 1);
+            if (this.vsConnections[src].length === 0) delete this.vsConnections[src];
+            this.log('  Removed link ' + (src+1) + '\u2192' + (target+1), 'info');
+        }
+    }
+
+    vsSlotTap(barIdx, dp, dispCenter) {
+        if (!this.vsActive) return;
+        if (this.vsPhase !== 'positions') return;
+        // Make this row the current bar if it isn't
+        if (barIdx !== this.vsCurrentBar) this.vsCurrentBar = barIdx;
+        // The pin is at dispCenter. The bar's notch (gap) is at: dispCenter - barPos + vsCenter.
+        // Tapping a slot means: align the bar so its gap lands at this dp.
+        // Solve for barPos: dp = dispCenter - barPos + vsCenter  =>  barPos = dispCenter - dp + vsCenter
+        var newPos = dispCenter - dp + this.vsCenter;
+        var maxPos = this.vsChannelWidth - 1;
+        if (newPos < 0) newPos = 0;
+        if (newPos > maxPos) newPos = maxPos;
+        this.vsPositions[this.vsCurrentBar] = newPos;
+        this.vsRender();
     }
 
     vsHandleKey(key) {
@@ -1560,26 +1857,65 @@ class GothicLockpick {
         return false;
     }
 
+    vsTouch(key) {
+        // Synthetic key dispatch for on-screen touch buttons
+        this.vsHandleKey(key);
+    }
+
+    vsUpdateTouchPad() {
+        var pad = document.getElementById('vsTouchPad');
+        if (!pad || pad.style.display === 'none') return;
+        var hint = document.getElementById('vsTouchHint');
+        var up = document.getElementById('vsTbtnUp');
+        var down = document.getElementById('vsTbtnDown');
+        var left = document.getElementById('vsTbtnLeft');
+        var right = document.getElementById('vsTbtnRight');
+        var skip = document.getElementById('vsSkipBtn');
+        if (this.vsPhase === 'positions') {
+            hint.textContent = 'Bar ' + (this.vsCurrentBar + 1) + ' \u2014 \u25C0 \u25B6 slide  \u2713 confirm';
+            up.disabled = true;
+            down.disabled = true;
+            left.disabled = false;
+            right.disabled = false;
+            if (skip) skip.style.display = 'none';
+        } else if (this.vsPhase === 'dependencies') {
+            hint.textContent = 'Bar ' + (this.vsCurrentBar + 1) + ' \u2014 \u25B2 \u25BC pick target  \u25C0 inverse  \u25B6 same  \u2713 done';
+            up.disabled = false;
+            down.disabled = false;
+            left.disabled = false;
+            right.disabled = false;
+            if (skip) skip.style.display = '';
+        } else if (this.vsPhase === 'done') {
+            hint.textContent = 'Ready! \u2713 to start.';
+            up.disabled = true;
+            down.disabled = true;
+            left.disabled = true;
+            right.disabled = true;
+            if (skip) skip.style.display = 'none';
+        }
+    }
+
     vsHandlePositionKey(key) {
         var idx = this.vsCurrentBar;
         if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
-            if (this.vsPositions[idx] > 0) this.vsPositions[idx]--;
-            this.vsRender();
-            return true;
-        }
-        if (key === 'ArrowRight' || key === 'd' || key === 'D') {
             if (this.vsPositions[idx] < this.vsChannelWidth - 1) this.vsPositions[idx]++;
             this.vsRender();
             return true;
         }
+        if (key === 'ArrowRight' || key === 'd' || key === 'D') {
+            if (this.vsPositions[idx] > 0) this.vsPositions[idx]--;
+            this.vsRender();
+            return true;
+        }
         if (key === 'Enter') {
-            this.log('Bar ' + (idx + 1) + ' pin set at position ' + this.vsPositions[idx] + '.', 'info');
-            this.vsCurrentBar++;
-            if (this.vsCurrentBar >= this.vsPlateCount) {
+            this.log('Bar ' + (idx + 1) + ' set at position ' + this.vsPositions[idx] + '.', 'info');
+            this.vsCurrentBar--;
+            if (this.vsCurrentBar < 0) {
                 // Move to dependencies phase
                 this.vsPhase = 'dependencies';
-                this.vsCurrentBar = 0;
-                this.vsDepCursor = this.vsCurrentBar === 0 ? 1 : 0;
+                this.vsCurrentBar = this.vsPlateCount - 1;
+                this.vsDepCursor = this.vsCurrentBar - 1;
+                if (this.vsDepCursor < 0) this.vsDepCursor = 0;
                 this.log('Phase 2 \u2014 Set dependencies. Navigate and link bars.', 'accent');
             }
             this.vsRender();
@@ -1591,17 +1927,17 @@ class GothicLockpick {
     vsHandleDependencyKey(key) {
         var idx = this.vsCurrentBar;
         if (key === 'ArrowUp' || key === 'w' || key === 'W') {
-            // Move dep cursor to previous bar (skip self)
+            // Move dep cursor to higher bar (visually above, skip self)
             do {
-                this.vsDepCursor = (this.vsDepCursor - 1 + this.vsPlateCount) % this.vsPlateCount;
+                this.vsDepCursor = (this.vsDepCursor + 1) % this.vsPlateCount;
             } while (this.vsDepCursor === idx);
             this.vsRender();
             return true;
         }
         if (key === 'ArrowDown' || key === 's' || key === 'S') {
-            // Move dep cursor to next bar (skip self)
+            // Move dep cursor to lower bar (visually below, skip self)
             do {
-                this.vsDepCursor = (this.vsDepCursor + 1) % this.vsPlateCount;
+                this.vsDepCursor = (this.vsDepCursor - 1 + this.vsPlateCount) % this.vsPlateCount;
             } while (this.vsDepCursor === idx);
             this.vsRender();
             return true;
@@ -1621,12 +1957,13 @@ class GothicLockpick {
         if (key === 'Enter') {
             var connCount = this.vsConnections[idx] ? this.vsConnections[idx].length : 0;
             this.log('Bar ' + (idx + 1) + ' links set (' + connCount + ' connections).', 'info');
-            this.vsCurrentBar++;
-            if (this.vsCurrentBar >= this.vsPlateCount) {
+            this.vsCurrentBar--;
+            if (this.vsCurrentBar < 0) {
                 this.vsPhase = 'done';
                 this.log('Setup complete! Press Enter to start.', 'success');
             } else {
-                this.vsDepCursor = this.vsCurrentBar === 0 ? 1 : 0;
+                this.vsDepCursor = this.vsCurrentBar - 1;
+                if (this.vsDepCursor < 0) this.vsDepCursor = this.vsPlateCount - 1;
                 if (this.vsDepCursor === this.vsCurrentBar) this.vsDepCursor = (this.vsCurrentBar + 1) % this.vsPlateCount;
             }
             this.vsRender();
@@ -1669,21 +2006,23 @@ class GothicLockpick {
         if (!this.vsActive) return;
         if (this.vsPhase === 'positions') {
             this.log('Bar ' + (this.vsCurrentBar + 1) + ' pin set at position ' + this.vsPositions[this.vsCurrentBar] + '.', 'info');
-            this.vsCurrentBar++;
-            if (this.vsCurrentBar >= this.vsPlateCount) {
+            this.vsCurrentBar--;
+            if (this.vsCurrentBar < 0) {
                 this.vsPhase = 'dependencies';
-                this.vsCurrentBar = 0;
-                this.vsDepCursor = 1;
+                this.vsCurrentBar = this.vsPlateCount - 1;
+                this.vsDepCursor = this.vsCurrentBar - 1;
+                if (this.vsDepCursor < 0) this.vsDepCursor = 0;
                 this.log('Phase 2 \u2014 Set dependencies.', 'accent');
             }
         } else if (this.vsPhase === 'dependencies') {
             this.log('Bar ' + (this.vsCurrentBar + 1) + ' skipped (no links).', 'info');
-            this.vsCurrentBar++;
-            if (this.vsCurrentBar >= this.vsPlateCount) {
+            this.vsCurrentBar--;
+            if (this.vsCurrentBar < 0) {
                 this.vsPhase = 'done';
                 this.log('Setup complete! Press Enter to start.', 'success');
             } else {
-                this.vsDepCursor = this.vsCurrentBar === 0 ? 1 : 0;
+                this.vsDepCursor = this.vsCurrentBar - 1;
+                if (this.vsDepCursor < 0) this.vsDepCursor = this.vsPlateCount - 1;
                 if (this.vsDepCursor === this.vsCurrentBar) this.vsDepCursor = (this.vsCurrentBar + 1) % this.vsPlateCount;
             }
         }
@@ -1693,6 +2032,7 @@ class GothicLockpick {
     vsCancel() {
         this.vsActive = false;
         document.getElementById('vsActions').style.display = 'none';
+        document.getElementById('vsTouchPad').style.display = 'none';
         document.getElementById('vsStatus').textContent = 'Cancelled.';
         document.getElementById('vsLockDisplay').innerHTML = '';
         document.getElementById('vsPhase1').className = 'vs-phase';
@@ -1735,6 +2075,7 @@ class GothicLockpick {
 
         this.vsActive = false;
         document.getElementById('vsActions').style.display = 'none';
+        document.getElementById('vsTouchPad').style.display = 'none';
 
         // Log setup info
         this.clearLog();
@@ -1768,15 +2109,16 @@ class GothicLockpick {
 
     /* === MOVEMENT LOGIC (Spec Section 4) ===
      *
-     * 1. Identify Movers: selected plate + all downstream via directed connections
+     * 1. Identify Movers: selected plate + direct connections
      * 2. Boundary Check: check current_pos vs min_pos/max_pos for ALL movers
      * 3. Success: increment/decrement current_pos for all movers
-     * 4. Failure (The Wall): movement blocked, trigger MISTAKE EVENT
+     * 4. Failure (The Wall): movement blocked
+     *    - Selected plate hits wall → MISTAKE EVENT (penalty)
+     *    - Connected plate hits wall → blocked silently (no penalty)
      *
-     * Controls are counter-intuitive per spec:
-     * Player shifts the plate. Tumbler is stationary.
-     * Pressing RIGHT shifts plate right, tumbler appears to move LEFT in channel.
-     * Visual pin position is rendered at (max_pos + min_pos) - current_pos.
+     * Controls: LEFT/RIGHT move the BAR (not the pin).
+     * Pressing LEFT = move(+1), pressing RIGHT = move(-1).
+     * The lockpick (pin) stays fixed at center.
      */
 
     move(direction) {
@@ -1788,26 +2130,35 @@ class GothicLockpick {
 
         // Step 2: Boundary check for ALL movers
         var blocked = false;
+        var selectedBlocked = false;
         for (var i = 0; i < movers.length; i++) {
             var mover = movers[i];
             var newPos = this.plates[mover.plate].current_pos + direction * mover.dirMul;
             if (newPos < this.plates[mover.plate].min_pos || newPos > this.plates[mover.plate].max_pos) {
                 blocked = true;
+                if (mover.plate === this.selectedPlate) selectedBlocked = true;
                 break;
             }
         }
 
         if (blocked) {
-            // Step 4: MISTAKE EVENT
-            this.handleMistake(direction);
+            if (selectedBlocked) {
+                // Step 4a: MISTAKE EVENT — selected plate hit wall
+                this.handleMistake(direction);
+            } else {
+                // Step 4b: Blocked by connected plate — no penalty
+                var dirLabel2 = direction === 1 ? '\u2190' : '\u2192';
+                this.log('Plate ' + (this.selectedPlate + 1) + ' ' + dirLabel2 + ' \u2014 blocked (linked bar hit wall)', 'fail');
+                this.flashMistake();
+            }
         } else {
-            // Step 3: Success - shift all movers (each with its own direction)
+            // Step 3: Success - shift all movers
             for (var j = 0; j < movers.length; j++) {
                 this.plates[movers[j].plate].current_pos += direction * movers[j].dirMul;
             }
             this.totalMoves++;
 
-            var dirLabel = direction === -1 ? '\u2190' : '\u2192';
+            var dirLabel = direction === 1 ? '\u2190' : '\u2192';
             var selPlate = this.selectedPlate;
             if (movers.length > 1) {
                 var dragged = movers.filter(function(m) { return m.plate !== selPlate; }).map(function(m) {
@@ -1838,7 +2189,7 @@ class GothicLockpick {
      */
     handleMistake(direction) {
         this.mistakesCount++;
-        var dirLabel = direction === -1 ? '\u2190' : '\u2192';
+        var dirLabel = direction === 1 ? '\u2190' : '\u2192';
         var tolerance = this.getMistakeTolerance();
 
         this.log('Plate ' + (this.selectedPlate + 1) + ' ' + dirLabel + ' \u2014 *clank!* Hit wall. (' + this.mistakesCount + '/' + tolerance + ')', 'fail');
@@ -1931,7 +2282,7 @@ class GothicLockpick {
         this.solveIdx++;
         this.selectedPlate = step.plate;
 
-        var dirLabel = step.dir === -1 ? '\u2190' : '\u2192';
+        var dirLabel = step.dir === 1 ? '\u2190' : '\u2192';
         this.log('Solution step ' + this.solveIdx + '/' + this.solution.length + ': Plate ' + (step.plate + 1) + ' ' + dirLabel, 'accent');
 
         if (this.checkWin()) {
@@ -2031,6 +2382,7 @@ class GothicLockpick {
         document.getElementById('skillField').style.display = this.mode === 'game' ? '' : 'none';
         document.getElementById('playerControls').style.display = this.mode === 'solve' ? 'none' : '';
         document.getElementById('solveControls').classList.toggle('visible', this.mode === 'solve');
+        document.getElementById('solutionList').classList.toggle('visible', this.mode === 'solve');
         document.getElementById('lockpickArea').style.display = this.mode === 'game' ? '' : 'none';
 
         // Reset solver state when entering solve mode so it starts fresh
@@ -2056,42 +2408,98 @@ class GothicLockpick {
         this.renderConnections();
         this.renderResult();
         this.renderPickTool();
+        this.renderSolutionList();
         this.updateButtons();
     }
 
+    renderSolutionList() {
+        var list = document.getElementById('solutionList');
+        if (!list) return;
+        list.innerHTML = '';
+        if (this.mode !== 'solve' || !this.solution || this.solution.length === 0) return;
+        for (var i = 0; i < this.solution.length; i++) {
+            var step = this.solution[i];
+            var label = (step.dir === 1 ? 'L' : 'R') + (step.plate + 1);
+            var el = document.createElement('div');
+            el.className = 'sol-step';
+            if (i < this.solveIdx) el.classList.add('done');
+            else if (i === this.solveIdx) el.classList.add('current');
+            el.title = 'Step ' + (i + 1) + ': Bar ' + (step.plate + 1) + ' ' + (step.dir === 1 ? 'Left' : 'Right');
+            var num = document.createElement('span');
+            num.className = 'sol-num';
+            num.textContent = (i + 1);
+            el.appendChild(num);
+            el.appendChild(document.createTextNode(label));
+            list.appendChild(el);
+        }
+        // Auto-scroll the current step into view
+        var current = list.querySelector('.sol-step.current');
+        if (current) current.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+
     /*
-     * Render plates as metal cassettes with horizontal channels.
+     * Render plates as sliding metal bars in a wider display frame.
      *
-     * Per spec: the tumbler is stationary (rendered as a vertical brass line
-     * at the center of the lock body). Each plate is a rectangular metal
-     * cassette with a horizontal channel/track and grip ridges.
-     *
-     * The pin (tumbler peg) within each channel is rendered at the INVERSE
-     * of current_pos, reflecting the counter-intuitive control:
-     * pressing RIGHT shifts the plate right, making the tumbler appear to
-     * move LEFT within the channel.
-     *
-     * Visual pin position = (max_pos + min_pos) - current_pos
-     * Visual gap position = (max_pos + min_pos) - target_pos
+     * The lockpick (pin) is fixed at the center of the display.
+     * Each bar slides left/right within a wider frame (2*maxPos+1 slots).
+     * Bars at different positions appear at different horizontal offsets,
+     * visually showing misalignment. The goal is to align all notches
+     * at the lockpick (center).
      */
     renderPlates() {
         var container = document.getElementById('plateContainer');
         container.innerHTML = '';
         var self = this;
 
-        for (var i = 0; i < this.plates.length; i++) {
+        // Render in reverse order (last bar on top) to match Gothic's layout
+        for (var i = this.plates.length - 1; i >= 0; i--) {
             (function(idx) {
                 var plate = self.plates[idx];
                 var isSelected = idx === self.selectedPlate && !self.isSolved && !self.isGameOver;
                 var isAligned = plate.current_pos === plate.target_pos;
+                var maxPos = plate.max_pos;
+                var displayWidth = 2 * maxPos + 1;
+                var displayCenter = maxPos; // lockpick always here
 
-                var visualPinPos = plate.current_pos;
-                var visualGapPos = plate.target_pos;
+                // Bar occupies display positions [barLeft, barRight]
+                var barLeft = displayCenter - plate.current_pos;
+                var barRight = displayCenter - plate.current_pos + maxPos;
+                // Notch (gap) display position
+                var gapDisplay = displayCenter - plate.current_pos + plate.target_pos;
 
                 var row = document.createElement('div');
                 row.className = 'plate-row';
                 if (isSelected) row.classList.add('selected');
                 row.onclick = function() { self.selectPlate(idx); };
+
+                // Swipe-to-slide for touch users
+                (function(self, plateIdx, rowEl) {
+                    var startX = null, startY = null, moved = false;
+                    rowEl.addEventListener('touchstart', function(ev) {
+                        if (ev.touches.length !== 1) return;
+                        startX = ev.touches[0].clientX;
+                        startY = ev.touches[0].clientY;
+                        moved = false;
+                    }, { passive: true });
+                    rowEl.addEventListener('touchmove', function(ev) {
+                        if (startX === null) return;
+                        var dx = ev.touches[0].clientX - startX;
+                        var dy = ev.touches[0].clientY - startY;
+                        if (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy) * 1.5 && !moved) {
+                            moved = true;
+                            if (self.selectedPlate !== plateIdx) self.selectPlate(plateIdx);
+                            // dx > 0 = swipe right = move bar right = move(-1)
+                            // dx < 0 = swipe left  = move bar left  = move(+1)
+                            self.move(dx > 0 ? -1 : 1);
+                            startX = ev.touches[0].clientX;
+                            startY = ev.touches[0].clientY;
+                            setTimeout(function() { moved = false; }, 120);
+                        }
+                    }, { passive: true });
+                    rowEl.addEventListener('touchend', function() {
+                        startX = null; startY = null;
+                    }, { passive: true });
+                })(self, idx, row);
 
                 // Label
                 var label = document.createElement('div');
@@ -2123,19 +2531,35 @@ class GothicLockpick {
                 var slots = document.createElement('div');
                 slots.className = 'channel-slots';
 
-                for (var pos = plate.min_pos; pos <= plate.max_pos; pos++) {
+                for (var dp = 0; dp < displayWidth; dp++) {
                     var slot = document.createElement('div');
                     slot.className = 'channel-slot';
 
-                    if (pos === visualGapPos) {
+                    // Beyond the bar's range = wall/empty
+                    if (dp < barLeft || dp > barRight) {
+                        slot.classList.add('beyond-bar');
+                    }
+
+                    // Notch (gap) in the bar
+                    if (dp === gapDisplay && dp >= barLeft && dp <= barRight) {
                         slot.classList.add('is-gap');
                     }
 
-                    if (pos === visualPinPos) {
+                    // Lockpick at center (always fixed)
+                    if (dp === displayCenter) {
                         if (isAligned) slot.classList.add('aligned');
                         var peg = document.createElement('div');
                         peg.className = 'pin-peg';
                         slot.appendChild(peg);
+                    }
+
+                    // Slot number — channel position (pin always = 4)
+                    var channelPos = dp - displayCenter + 4;
+                    if (dp >= barLeft && dp <= barRight && channelPos >= 1 && channelPos <= 7) {
+                        var num = document.createElement('span');
+                        num.className = 'slot-num';
+                        num.textContent = channelPos;
+                        slot.appendChild(num);
                     }
 
                     slots.appendChild(slot);
@@ -2164,12 +2588,12 @@ class GothicLockpick {
                     body.appendChild(connBadge);
                 }
 
-                // Hint mode: distance badge (shows INPUT direction needed)
+                // Hint mode: distance badge (shows bar movement direction needed)
                 if (self.mode === 'hint' && !isAligned) {
                     var dist = plate.target_pos - plate.current_pos;
                     var badge = document.createElement('div');
                     badge.className = 'hint-badge';
-                    badge.textContent = dist > 0 ? '\u2192' + dist : '\u2190' + Math.abs(dist);
+                    badge.textContent = dist > 0 ? '\u2190' + dist : '\u2192' + Math.abs(dist);
                     body.appendChild(badge);
                 }
 
@@ -2256,7 +2680,9 @@ class GothicLockpick {
 
     flashMistake() {
         var rows = document.querySelectorAll('.plate-row');
-        var row = rows[this.selectedPlate];
+        // Plates are rendered in reverse order (last bar first in DOM)
+        var domIdx = this.plates.length - 1 - this.selectedPlate;
+        var row = rows[domIdx];
         if (row) {
             row.classList.add('mistake');
             setTimeout(function() { row.classList.remove('mistake'); }, 400);
@@ -2318,25 +2744,25 @@ document.addEventListener('keydown', function(e) {
         case 'w':
         case 'W':
             e.preventDefault();
-            game.selectPrev();
+            game.selectNext();
             break;
         case 'ArrowDown':
         case 's':
         case 'S':
             e.preventDefault();
-            game.selectNext();
+            game.selectPrev();
             break;
         case 'ArrowLeft':
         case 'a':
         case 'A':
             e.preventDefault();
-            game.move(-1);
+            game.move(1);
             break;
         case 'ArrowRight':
         case 'd':
         case 'D':
             e.preventDefault();
-            game.move(1);
+            game.move(-1);
             break;
         case ' ':
             e.preventDefault();
