@@ -1257,7 +1257,7 @@ class GothicLockpick {
     }
 
     isSolvable(plates, connections, maxIterations) {
-        if (!maxIterations) maxIterations = 50000;
+        if (!maxIterations) maxIterations = 200000;
         var n = plates.length;
         var targetState = plates.map(function(p) { return p.target_pos; }).join(',');
         var startState = plates.map(function(p) { return p.initial_pos; }).join(',');
@@ -1270,7 +1270,7 @@ class GothicLockpick {
      * optimal remaining steps in the status bar.
      */
     solveFromCurrent(maxIterations) {
-        if (!maxIterations) maxIterations = 50000;
+        if (!maxIterations) maxIterations = 200000;
         var targetState = this.plates.map(function(p) { return p.target_pos; }).join(',');
         var startState = this.plates.map(function(p) { return p.current_pos; }).join(',');
 
@@ -2619,7 +2619,7 @@ class GothicLockpick {
         }
 
         if (this.mode === 'hint') {
-            var remaining = this.solveFromCurrent(30000);
+            var remaining = this.solveFromCurrent();
             var stepsLeft = remaining.solvable ? remaining.steps.length : '?';
             parts.push('<div class="status-item"><span class="status-label">Steps to solve:</span><span class="status-value">' + stepsLeft + '</span></div>');
         }
